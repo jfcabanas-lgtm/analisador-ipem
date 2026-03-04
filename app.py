@@ -1,6 +1,6 @@
 # ============================================
 # DESPACHO AUDIT - IPEM/RJ
-# VERSÃO PREMIUM - CORREÇÕES SOLICITADAS
+# VERSÃO PREMIUM - FRASE CORRIGIDA
 # ============================================
 
 import streamlit as st
@@ -421,7 +421,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ============================================
-# HEADER PRINCIPAL - SEM LOGO FICTÍCIO
+# HEADER PRINCIPAL - FRASE CORRIGIDA
 # ============================================
 
 st.markdown("""
@@ -433,7 +433,7 @@ st.markdown("""
         </div>
         <div class="header-seal">
             <h2>AUDITORIA<br>INTERNA</h2>
-            <p>SISTEMA DE DESPACHO INTELIGENTE</p>
+            <p>SISTEMA DE DESPACHO INTELIGENTE POR ANÁLISE DE PROCESSO DE LICITAÇÃO E DISPENSA</p>
         </div>
     </div>
 </div>
@@ -537,7 +537,86 @@ st.markdown("""
 
 arquivo = st.file_uploader("", type=['pdf'], label_visibility="collapsed")
 
-# [RESTANTE DO CÓDIGO IGUAL - FUNÇÕES DE EXTRAÇÃO, FORMULÁRIO, DOWNLOAD...]
+# ============================================
+# FUNÇÃO PARA EXTRAIR DADOS (MANTIDA IGUAL)
+# ============================================
+
+if arquivo and st.session_state.dados_extraidos is None:
+    
+    with st.spinner("🔍 Analisando PDF e extraindo dados..."):
+        
+        texto = ""
+        with pdfplumber.open(io.BytesIO(arquivo.read())) as pdf:
+            for pagina in pdf.pages:
+                if pagina.extract_text():
+                    texto += pagina.extract_text() + "\n"
+        
+        st.session_state.texto_extraido = texto
+        
+        def extrair_campo(padroes, texto, default=""):
+            for padrao in padroes:
+                match = re.search(padrao, texto, re.IGNORECASE)
+                if match:
+                    return match.group(1).strip()
+            return default
+        
+        dados_extraidos = {
+            'processo_sei': extrair_campo([
+                r'Processo[:\s]*n[º°]?\s*([\d\-/]+)',
+                r'SEI[:\s]*n[º°]?\s*([\d\-/]+)',
+                r'(\d{6,}/\d{6,}/\d{4})'
+            ], texto, ""),
+            
+            'objeto': extrair_campo([
+                r'objeto[:\s]*([^.]+)',
+                r'aquisição[:\s]*([^.]+)',
+                r'contratação[:\s]*([^.]+)'
+            ], texto, ""),
+            
+            'valor': extrair_campo([
+                r'R\$\s*([\d.,]+)',
+                r'valor[:\s]*R\$\s*([\d.,]+)',
+                r'total[:\s]*R\$\s*([\d.,]+)'
+            ], texto, ""),
+            
+            'etp_numero': extrair_campo([
+                r'ETP[:\s]*n[º°]?\s*(\d+/\d+)',
+                r'Estudo Técnico Preliminar[:\s]*n[º°]?\s*(\d+/\d+)'
+            ], texto, ""),
+            
+            'tr_numero': extrair_campo([
+                r'TR[:\s]*n[º°]?\s*(\d+/\d+)',
+                r'Termo de Referência[:\s]*n[º°]?\s*(\d+/\d+)'
+            ], texto, ""),
+            
+            'risco_numero': extrair_campo([
+                r'Matriz de Riscos[:\s]*n[º°]?\s*(\d+/\d+)',
+                r'Gestão de Risco[:\s]*n[º°]?\s*(\d+/\d+)'
+            ], texto, ""),
+            
+            'req_siga': extrair_campo([
+                r'Requisição[:\s]*n[º°]?\s*(\d+/\d+)',
+                r'SIGA[:\s]*n[º°]?\s*(\d+/\d+)'
+            ], texto, ""),
+            
+            'parecer_numero': extrair_campo([
+                r'Despacho SEI[:\s]*n[º°]?\s*(\d+)',
+                r'Parecer[:\s]*n[º°]?\s*(\d+)'
+            ], texto, ""),
+            
+            'data_autorizacao': extrair_campo([
+                r'autorizado[:\s]*em[:\s]*(\d{1,2}[/]\d{1,2}[/]\d{4})',
+                r'(\d{1,2}[/]\d{1,2}[/]\d{4})'
+            ], texto, "")
+        }
+        
+        seis_encontrados = re.findall(r'SEI[:\s]*n[º°]?\s*(\d+)', texto, re.IGNORECASE)
+        
+        st.session_state.dados_extraidos = dados_extraidos
+        st.session_state.seis_encontrados = seis_encontrados
+        st.session_state.processos_analisados += 1
+        
+        st.rerun()
 
 # ============================================
 # SE HOUVER DADOS EXTRAÍDOS, MOSTRA O FORMULÁRIO
@@ -583,10 +662,7 @@ if st.session_state.dados_extraidos:
             for i, sei in enumerate(seis[:10]):
                 st.write(f"• SEI {sei}")
     
-    # ========================================
     # FORMULÁRIO
-    # ========================================
-    
     st.markdown("""
     <div class="section-premium">
         <div class="section-title-premium">✏️ Confirmação de Dados</div>
@@ -643,10 +719,7 @@ if st.session_state.dados_extraidos:
         
         submitted = st.form_submit_button("✅ CONFIRMAR DADOS E GERAR DESPACHO", use_container_width=True)
     
-    # ========================================
-    # GERAR DESPACHO (MANTIVE O CÓDIGO ANTERIOR)
-    # ========================================
-    
+    # GERAÇÃO DO DESPACHO
     if submitted:
         
         if not processo_sei or not objeto:
@@ -802,8 +875,8 @@ if st.session_state.doc_bytes:
 st.markdown("""
 <div class="footer-premium">
     <p><strong>IPEM/RJ - INSTITUTO DE PESOS E MEDIDAS DO ESTADO DO RIO DE JANEIRO</strong></p>
-    <p>AUDITORIA INTERNA - SISTEMA DE DESPACHO INTELIGENTE</p>
-    <p style="font-size: 0.9rem; opacity: 0.8;">Lei nº 14.133/2021 • Versão 7.1 Premium</p>
+    <p>AUDITORIA INTERNA - SISTEMA DE DESPACHO INTELIGENTE POR ANÁLISE DE PROCESSO DE LICITAÇÃO E DISPENSA</p>
+    <p style="font-size: 0.9rem; opacity: 0.8;">Lei nº 14.133/2021 • Versão 7.2 Premium</p>
     <p style="font-size: 0.8rem; opacity: 0.6;">© 2026 - Todos os direitos reservados</p>
 </div>
 """, unsafe_allow_html=True)
