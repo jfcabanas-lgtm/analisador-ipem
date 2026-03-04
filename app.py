@@ -1,6 +1,6 @@
 # ============================================
-# DESPACHO AUDIT - VERSÃO HÍBRIDA CORRIGIDA
-# ANALISA O PDF E PREENCHE O FORMULÁRIO!
+# DESPACHO AUDIT - IPEm/RJ
+# VERSÃO COMPLETA COM LOGO
 # ============================================
 
 import streamlit as st
@@ -12,22 +12,76 @@ from docx.shared import Pt
 import tempfile
 import os
 import io
+from PIL import Image
 
-# CONFIGURAÇÃO
-st.set_page_config(page_title="IPEm - Despacho Inteligente", page_icon="⚖️", layout="wide")
+# CONFIGURAÇÃO DA PÁGINA
+st.set_page_config(
+    page_title="IPEm - Despacho Inteligente",
+    page_icon="⚖️",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
 
-# CSS
+# ============================================
+# CSS PERSONALIZADO
+# ============================================
+
 st.markdown("""
 <style>
     .header {background: linear-gradient(90deg, #003366 0%, #0047ab 100%); padding: 2rem; border-radius: 20px; color: white; text-align: center; margin-bottom: 2rem;}
     .section-title {color: #003366; font-size: 1.3rem; font-weight: 600; margin: 1.5rem 0 1rem 0; border-bottom: 2px solid #eef2f6; padding-bottom: 0.5rem;}
     .success-box {background: #d4edda; color: #155724; padding: 1rem; border-radius: 10px; border-left: 4px solid #28a745;}
     .warning-box {background: #fff3cd; color: #856404; padding: 1rem; border-radius: 10px; border-left: 4px solid #ffc107;}
+    .footer {text-align: center; color: #64748b; font-size: 0.9rem; margin-top: 3rem;}
 </style>
 """, unsafe_allow_html=True)
 
-# CABEÇALHO
-st.markdown('<div class="header"><h1>⚖️ IPEm - Despacho Inteligente</h1><p>Upload do PDF → Extrai dados → Você confirma → Gera despacho</p></div>', unsafe_allow_html=True)
+# ============================================
+# LOGO DO IPEM (AGORA NO INÍCIO!)
+# ============================================
+
+col_logo1, col_logo2, col_logo3 = st.columns([1, 2, 1])
+
+with col_logo2:
+    try:
+        # Tenta carregar o logo
+        if os.path.exists("logo_ipem.png"):
+            logo = Image.open("logo_ipem.png")
+            st.image(logo, width=250, use_container_width=False)
+            st.markdown("""
+            <div style='text-align: center; margin-top: -10px;'>
+                <h3 style='color: #003366; margin: 0;'>INSTITUTO DE PESOS E MEDIDAS</h3>
+                <p style='color: #666; font-size: 1.1rem;'>ESTADO DO RIO DE JANEIRO</p>
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            # Fallback caso o logo não exista
+            st.markdown("""
+            <div style='text-align: center; padding: 1rem;'>
+                <h1 style='color: #003366; font-size: 3rem;'>⚖️ IPEm/RJ</h1>
+                <h3 style='color: #666;'>INSTITUTO DE PESOS E MEDIDAS</h3>
+                <p style='color: #999; font-size: 1.1rem;'>ESTADO DO RIO DE JANEIRO</p>
+            </div>
+            """, unsafe_allow_html=True)
+    except Exception as e:
+        st.warning(f"Carregando sistema...")
+
+st.markdown("---")
+
+# ============================================
+# INICIALIZAÇÃO DO SESSION STATE
+# ============================================
+
+if 'dados_extraidos' not in st.session_state:
+    st.session_state.dados_extraidos = None
+if 'texto_extraido' not in st.session_state:
+    st.session_state.texto_extraido = None
+if 'seis_encontrados' not in st.session_state:
+    st.session_state.seis_encontrados = []
+if 'doc_bytes' not in st.session_state:
+    st.session_state.doc_bytes = None
+if 'nome_arquivo' not in st.session_state:
+    st.session_state.nome_arquivo = None
 
 # ============================================
 # PASSO 1: UPLOAD DO PDF
@@ -36,14 +90,6 @@ st.markdown('<div class="header"><h1>⚖️ IPEm - Despacho Inteligente</h1><p>U
 st.markdown('<div class="section-title">📂 PASSO 1: Upload do Processo</div>', unsafe_allow_html=True)
 
 arquivo = st.file_uploader("Selecione o PDF do processo", type=['pdf'])
-
-# Inicializar session state para guardar os dados
-if 'dados_extraidos' not in st.session_state:
-    st.session_state.dados_extraidos = None
-if 'texto_extraido' not in st.session_state:
-    st.session_state.texto_extraido = None
-if 'seis_encontrados' not in st.session_state:
-    st.session_state.seis_encontrados = []
 
 if arquivo and st.session_state.dados_extraidos is None:
     
@@ -169,7 +215,7 @@ if st.session_state.dados_extraidos:
                 st.write(f"• SEI {sei}")
     
     # ========================================
-    # PASSO 3: FORMULÁRIO PARA CONFIRMAÇÃO (FORA DO FORM)
+    # PASSO 3: FORMULÁRIO PARA CONFIRMAÇÃO
     # ========================================
     
     st.markdown('<div class="section-title">✏️ PASSO 3: Confirme e Ajuste os Dados</div>', unsafe_allow_html=True)
@@ -253,11 +299,10 @@ if st.session_state.dados_extraidos:
             height=100
         )
         
-        # Botão de enviar do form
         submitted = st.form_submit_button("✅ CONFIRMAR DADOS E GERAR DESPACHO")
     
     # ========================================
-    # PASSO 4: GERAR DESPACHO (FORA DO FORM!)
+    # PASSO 4: GERAR DESPACHO
     # ========================================
     
     if submitted:
@@ -386,17 +431,16 @@ if st.session_state.dados_extraidos:
                 doc.save(doc_bytes)
                 doc_bytes.seek(0)
                 
-                # Guardar na session state para usar fora do form
                 st.session_state.doc_bytes = doc_bytes.getvalue()
                 st.session_state.nome_arquivo = f"DESPACHO_{processo_sei.replace('/', '_')}.docx"
                 
                 st.rerun()
 
 # ============================================
-# PASSO 5: BOTÃO DE DOWNLOAD (FORA DO FORM!)
+# PASSO 5: BOTÃO DE DOWNLOAD
 # ============================================
 
-if 'doc_bytes' in st.session_state:
+if st.session_state.doc_bytes:
     
     st.markdown('<div class="section-title">📥 PASSO 4: Download do Despacho</div>', unsafe_allow_html=True)
     
@@ -424,8 +468,10 @@ if 'doc_bytes' in st.session_state:
 
 st.markdown("---")
 st.markdown(f"""
-<div style="text-align: center; color: #64748b; font-size: 0.9rem;">
-    © 2026 - Auditoria Interna IPEm/RJ • Versão 5.0 Corrigida<br>
+<div class="footer">
+    © 2026 - Auditoria Interna IPEm/RJ • Versão 6.0<br>
+    INSTITUTO DE PESOS E MEDIDAS DO ESTADO DO RIO DE JANEIRO<br>
+    Sistema de Despacho Inteligente - Lei 14.133/2021<br>
     Última atualização: {datetime.now().strftime('%d/%m/%Y %H:%M')}
 </div>
 """, unsafe_allow_html=True)
