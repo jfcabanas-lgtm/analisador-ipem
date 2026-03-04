@@ -1,6 +1,6 @@
 # ============================================
 # DESPACHO AUDIT - IPEm/RJ
-# VERSÃO COMPLETA COM LOGO
+# VERSÃO COMPLETA COM LOGO CORRIGIDO
 # ============================================
 
 import streamlit as st
@@ -37,34 +37,46 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ============================================
-# LOGO DO IPEM (AGORA NO INÍCIO!)
+# LOGO DO IPEM - CORRIGIDO (aceita os dois nomes)
 # ============================================
 
 col_logo1, col_logo2, col_logo3 = st.columns([1, 2, 1])
 
 with col_logo2:
     try:
-        # Tenta carregar o logo
+        # Primeiro tenta o nome correto
         if os.path.exists("logo_ipem.png"):
             logo = Image.open("logo_ipem.png")
             st.image(logo, width=250, use_container_width=False)
-            st.markdown("""
-            <div style='text-align: center; margin-top: -10px;'>
-                <h3 style='color: #003366; margin: 0;'>INSTITUTO DE PESOS E MEDIDAS</h3>
-                <p style='color: #666; font-size: 1.1rem;'>ESTADO DO RIO DE JANEIRO</p>
-            </div>
-            """, unsafe_allow_html=True)
+        # Se não, tenta o nome com dupla extensão
+        elif os.path.exists("logo_ipem.png.png"):
+            logo = Image.open("logo_ipem.png.png")
+            st.image(logo, width=250, use_container_width=False)
+            st.caption("ℹ️ Arquivo com nome duplicado - renomeie para 'logo_ipem.png' para melhor compatibilidade")
         else:
-            # Fallback caso o logo não exista
+            # Se não encontrar nenhum, mostra texto
             st.markdown("""
             <div style='text-align: center; padding: 1rem;'>
                 <h1 style='color: #003366; font-size: 3rem;'>⚖️ IPEm/RJ</h1>
-                <h3 style='color: #666;'>INSTITUTO DE PESOS E MEDIDAS</h3>
-                <p style='color: #999; font-size: 1.1rem;'>ESTADO DO RIO DE JANEIRO</p>
             </div>
             """, unsafe_allow_html=True)
+        
+        # Texto institucional (aparece com ou sem logo)
+        st.markdown("""
+        <div style='text-align: center; margin-top: 5px;'>
+            <h3 style='color: #003366; margin: 0;'>INSTITUTO DE PESOS E MEDIDAS</h3>
+            <p style='color: #666; font-size: 1.1rem;'>ESTADO DO RIO DE JANEIRO</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
     except Exception as e:
-        st.warning(f"Carregando sistema...")
+        st.markdown("""
+        <div style='text-align: center; padding: 1rem;'>
+            <h1 style='color: #003366;'>⚖️ IPEm/RJ</h1>
+            <h3 style='color: #666;'>INSTITUTO DE PESOS E MEDIDAS</h3>
+            <p style='color: #999;'>ESTADO DO RIO DE JANEIRO</p>
+        </div>
+        """, unsafe_allow_html=True)
 
 st.markdown("---")
 
@@ -469,7 +481,7 @@ if st.session_state.doc_bytes:
 st.markdown("---")
 st.markdown(f"""
 <div class="footer">
-    © 2026 - Auditoria Interna IPEm/RJ • Versão 6.0<br>
+    © 2026 - Auditoria Interna IPEm/RJ • Versão 6.1<br>
     INSTITUTO DE PESOS E MEDIDAS DO ESTADO DO RIO DE JANEIRO<br>
     Sistema de Despacho Inteligente - Lei 14.133/2021<br>
     Última atualização: {datetime.now().strftime('%d/%m/%Y %H:%M')}
