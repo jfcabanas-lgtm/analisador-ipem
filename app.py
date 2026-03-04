@@ -1,5 +1,5 @@
 # ============================================
-# ANALISADOR COM DESPACHO EM WORD (CORRIGIDO)
+# ANALISADOR IPEm - DESPACHO AUDIT PERSONALIZADO
 # ============================================
 
 import streamlit as st
@@ -9,28 +9,28 @@ from datetime import datetime
 import pandas as pd
 import io
 from docx import Document
-from docx.shared import Inches, Pt, RGBColor
+from docx.shared import Pt, RGBColor
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 import tempfile
 import os
 
 # CONFIGURAÇÃO DA PÁGINA
 st.set_page_config(
-    page_title="Analisador IPEm - Despacho Automático",
+    page_title="Analisador IPEm - Despacho AUDIT",
     page_icon="📋",
     layout="wide"
 )
 
 # TÍTULO
 st.title("📋 Analisador de Instrução Processual - IPEm/RJ")
-st.markdown("**Geração automática de DESPACHO em WORD**")
+st.markdown("**Geração automática de DESPACHO AUDIT**")
 st.markdown("---")
 
 # SIDEBAR
 with st.sidebar:
     st.header("ℹ️ Sobre")
     st.info("""
-    **Finalidade:** Gerar despacho padronizado para juntada ao processo SEI
+    **Finalidade:** Gerar despacho AUDIT padronizado conforme modelo do IPEm
     
     **Formato de saída:** Microsoft Word (.docx)
     """)
@@ -62,61 +62,92 @@ def extrair_texto_pdf(arquivo):
     return texto
 
 def verificar_documentos_obrigatorios(texto):
-    """Verifica documentos obrigatórios"""
+    """
+    Verifica se o processo contém os documentos obrigatórios
+    Conforme modelo de despacho do IPEm
+    """
     
-    documentos = {
-        'Estudo Técnico Preliminar (Art. 18, I)': r'estudo preliminar|etp',
-        'Termo de Referência (Art. 18, II)': r'termo de referência|projeto básico',
-        'Pesquisa de Preços (Art. 23)': r'pesquisa de preços|mapa de preços',
-        'Parecer Jurídico (Art. 53)': r'parecer jurídico|assessoria jurídica',
-        'Justificativa (Art. 18, III)': r'justificativa|motivação',
-        'Publicação (Art. 54)': r'publicação|diário oficial',
-        'Designação de Fiscal (Art. 117)': r'fiscal|gestor do contrato'
+    # Planejamento
+    planejamento_itens = {
+        'Justificativa Técnica e Administrativa': r'justificativa|motivação',
+        'Gestão de Risco': r'gestão de risco|risco|matriz de risco',
+        'Estudo Técnico Preliminar (ETP)': r'estudo preliminar|etp',
+        'Termo de Referência (TR)': r'termo de referência|tr'
     }
     
-    presentes = []
-    ausentes = []
+    # Economicidade
+    economicidade_itens = {
+        'Pesquisa de Preços': r'pesquisa de preços|mapa de preços|orçamento estimado'
+    }
     
-    for doc, padrao in documentos.items():
+    # Legalidade
+    legalidade_itens = {
+        'Parecer Jurídico': r'parecer jurídico|assessoria jurídica|procuradoria'
+    }
+    
+    # Controle
+    controle_itens = {
+        'Segregação de Funções': r'segregação|funções distintas|responsáveis diferentes'
+    }
+    
+    resultados = {
+        'planejamento': [],
+        'economicidade': [],
+        'legalidade': [],
+        'controle': []
+    }
+    
+    # Verificar planejamento
+    for item, padrao in planejamento_itens.items():
         if re.search(padrao, texto, re.IGNORECASE):
-            presentes.append(doc)
-        else:
-            ausentes.append(doc)
+            resultados['planejamento'].append(f"• {item}")
     
-    return presentes, ausentes
+    # Verificar economicidade
+    for item, padrao in economicidade_itens.items():
+        if re.search(padrao, texto, re.IGNORECASE):
+            resultados['economicidade'].append(f"• {item}")
+    
+    # Verificar legalidade
+    for item, padrao in legalidade_itens.items():
+        if re.search(padrao, texto, re.IGNORECASE):
+            resultados['legalidade'].append(f"• {item}")
+    
+    # Verificar controle
+    for item, padrao in controle_itens.items():
+        if re.search(padrao, texto, re.IGNORECASE):
+            resultados['controle'].append(f"• {item}")
+    
+    # Extrair número do parecer jurídico
+    parecer = re.search(r'Doc\. SEI nº (\d+)', texto, re.IGNORECASE)
+    num_parecer = parecer.group(1) if parecer else "XXX"
+    
+    return resultados, num_parecer
 
 def extrair_dados_basicos(texto):
     """Extrai informações básicas"""
     dados = {}
     
-    # Número
+    # Número do processo
     match = re.search(r'Processo[:\s]*n[º°]?\s*([\d\-/]+)', texto, re.IGNORECASE)
     dados['processo'] = match.group(1).strip() if match else "Não identificado"
+    
+    # Objeto
+    match = re.search(r'(objeto|objetivo)[:\s]*([^.]+)', texto, re.IGNORECASE)
+    dados['objeto'] = match.group(2).strip() if match else "Não especificado"
     
     # Valor
     match = re.search(r'Valor\s*R\$\s*([\d.,]+)', texto, re.IGNORECASE)
     dados['valor'] = match.group(1) if match else "Não identificado"
     
-    # Data
-    match = re.search(r'(\d{1,2})\s*de\s*([A-ZÇa-zç]+)\s*de\s*(\d{4})', texto)
-    if match:
-        dados['data'] = f"{match.group(1)}/{match.group(2)}/{match.group(3)}"
-    else:
-        dados['data'] = "Não identificado"
-    
-    # Órgão
-    match = re.search(r'([A-Z]{3,}(?:\/[A-Z]{3,})*)', texto)
-    dados['orgao'] = match.group(1) if match else "Não identificado"
-    
     return dados
 
 # ============================================
-# FUNÇÃO PARA GERAR DESPACHO EM WORD
+# FUNÇÃO PARA GERAR DESPACHO CONFORME MODELO
 # ============================================
 
-def gerar_despacho_word(dados, presentes, ausentes, recomendacao):
+def gerar_despacho_audit(dados, resultados, num_parecer, recomendacao):
     """
-    Gera um despacho formatado em Word (.docx)
+    Gera despacho EXATAMENTE conforme modelo fornecido
     """
     
     doc = Document()
@@ -127,107 +158,128 @@ def gerar_despacho_word(dados, presentes, ausentes, recomendacao):
     style.font.size = Pt(12)
     
     # ========================================
-    # CABEÇALHO
-    # ========================================
-    
-    header = doc.add_paragraph()
-    header.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    run = header.add_run("INSTITUTO DE PESOS E MEDIDAS DO ESTADO DO RIO DE JANEIRO")
-    run.bold = True
-    run.font.size = Pt(14)
-    
-    header2 = doc.add_paragraph()
-    header2.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    run = header2.add_run("AUDITORIA INTERNA")
-    run.bold = True
-    run.font.size = Pt(13)
-    
-    doc.add_paragraph()
-    
-    # ========================================
-    # NÚMERO DO DESPACHO
-    # ========================================
-    
-    num_despacho = f"DESPACHO AUDIT Nº {datetime.now().strftime('%Y')}/"
-    p = doc.add_paragraph()
-    run = p.add_run(num_despacho)
-    run.bold = True
-    
-    doc.add_paragraph()
-    
-    # ========================================
-    # DESTINATÁRIO
+    # 1. OBJETO E ESCOPO
     # ========================================
     
     p = doc.add_paragraph()
-    run = p.add_run("Ao Sr. Presidente do IPEm/RJ")
+    run = p.add_run("1. OBJETO E ESCOPO")
     run.bold = True
+    run.font.size = Pt(12)
+    
+    doc.add_paragraph()
+    doc.add_paragraph(
+        f"Trata-se da análise de conformidade da instrução processual relativa "
+        f"à {dados['objeto']}, com fulcro na Lei nº 14.133/2021. A presente "
+        f"manifestação desta Auditoria Interna (AUDINT) limita-se ao exame da "
+        f"regularidade do rito administrativo, não adentrando no mérito técnico "
+        f"ou na discricionariedade da despesa."
+    )
     
     doc.add_paragraph()
     
     # ========================================
-    # ASSUNTO
+    # 2. VERIFICAÇÃO DA INSTRUÇÃO
     # ========================================
     
     p = doc.add_paragraph()
-    run = p.add_run(f"Assunto: Análise de instrução processual - Processo {dados['processo']}")
+    run = p.add_run("2. VERIFICAÇÃO DA INSTRUÇÃO")
     run.bold = True
     
     doc.add_paragraph()
+    doc.add_paragraph(
+        "Verificamos que o processo seguiu o fluxo obrigatório da fase "
+        "preparatória, estando devidamente instruído com os seguintes "
+        "elementos essenciais:"
+    )
     
-    # ========================================
-    # CORPO DO DESPACHO
-    # ========================================
-    
-    doc.add_paragraph(f"Reporto-me ao Processo {dados['processo']}, em trâmite por esta Auditoria Interna, para manifestação quanto à instrução processual para prosseguimento.")
     doc.add_paragraph()
     
-    doc.add_paragraph("Em análise aos autos, verificou-se o seguinte:")
+    # Planejamento
+    p = doc.add_paragraph()
+    run = p.add_run("• Planejamento:")
+    run.bold = True
+    for item in resultados['planejamento']:
+        doc.add_paragraph(f"  {item}")
+    
     doc.add_paragraph()
     
-    # Documentos presentes
-    if presentes:
-        p = doc.add_paragraph()
-        run = p.add_run("Documentos identificados:")
-        run.bold = True
-        
-        for doc_item in presentes:
-            doc.add_paragraph(f"✓ {doc_item}", style='List Bullet')
-        
-        doc.add_paragraph()
+    # Economicidade
+    p = doc.add_paragraph()
+    run = p.add_run("• Economicidade:")
+    run.bold = True
+    for item in resultados['economicidade']:
+        doc.add_paragraph(f"  {item}")
     
-    # Documentos ausentes
-    if ausentes:
-        p = doc.add_paragraph()
-        run = p.add_run("Documentos não localizados:")
-        run.bold = True
-        
-        for doc_item in ausentes:
-            doc.add_paragraph(f"✗ {doc_item}", style='List Bullet')
-        
-        doc.add_paragraph()
+    doc.add_paragraph()
+    
+    # Legalidade
+    p = doc.add_paragraph()
+    run = p.add_run("• Legalidade:")
+    run.bold = True
+    for item in resultados['legalidade']:
+        doc.add_paragraph(f"  {item} (Doc. SEI nº {num_parecer})")
+    
+    doc.add_paragraph()
     
     # ========================================
-    # CONCLUSÃO
+    # 3. CONSIDERAÇÕES DE CONTROLE
     # ========================================
     
-    doc.add_paragraph("Diante do exposto, esta Auditoria Interna manifesta-se:")
+    p = doc.add_paragraph()
+    run = p.add_run("3. CONSIDERAÇÕES DE CONTROLE")
+    run.bold = True
+    
+    doc.add_paragraph()
+    doc.add_paragraph(
+        "Considerando que a Assessoria Jurídica não apontou óbices e que "
+        "as áreas técnicas certificaram a adequação dos quantitativos e "
+        "especificações, esta AUDIT registra que:"
+    )
+    
+    doc.add_paragraph()
+    doc.add_paragraph("• As etapas de controle preventivo foram observadas;")
+    
+    if resultados['controle']:
+        doc.add_paragraph("• A segregação de funções foi respeitada;")
+    else:
+        doc.add_paragraph("• Recomenda-se verificar a segregação de funções;")
+    
     doc.add_paragraph()
     
     if recomendacao == "PROSSEGUIMENTO":
-        p = doc.add_paragraph()
-        run = p.add_run("PELO PROSSEGUIMENTO do feito, eis que presentes os documentos essenciais à instrução processual.")
-        run.bold = True
-        
-    elif recomendacao == "PROSSEGUIMENTO COM RESSALVAS":
-        p = doc.add_paragraph()
-        run = p.add_run("PELO PROSSEGUIMENTO COM RESSALVAS, recomendando-se a juntada dos documentos ausentes.")
-        run.bold = True
-        
+        doc.add_paragraph("• O processo encontra-se em condições de prosseguimento.")
     else:
-        p = doc.add_paragraph()
-        run = p.add_run("PELA DEVOLUÇÃO para complementação da instrução, conforme documentos faltantes listados.")
-        run.bold = True
+        doc.add_paragraph("• O processo necessita de complementação antes do prosseguimento.")
+    
+    doc.add_paragraph()
+    
+    # ========================================
+    # 4. CONCLUSÃO
+    # ========================================
+    
+    p = doc.add_paragraph()
+    run = p.add_run("4. CONCLUSÃO")
+    run.bold = True
+    
+    doc.add_paragraph()
+    
+    if recomendacao == "PROSSEGUIMENTO":
+        doc.add_paragraph(
+            "Diante da regularidade formal da instrução processual, "
+            "esta AUDIT indica o prosseguimento do presente processo."
+        )
+    elif recomendacao == "PROSSEGUIMENTO COM RESSALVAS":
+        doc.add_paragraph(
+            "Diante da regularidade parcial da instrução processual, "
+            "esta AUDIT indica o prosseguimento com recomendações de "
+            "complementação documental."
+        )
+    else:
+        doc.add_paragraph(
+            "Diante das inconsistências identificadas na instrução "
+            "processual, esta AUDIT recomenda a complementação dos "
+            "documentos faltantes antes do prosseguimento."
+        )
     
     doc.add_paragraph()
     doc.add_paragraph()
@@ -237,9 +289,10 @@ def gerar_despacho_word(dados, presentes, ausentes, recomendacao):
     # ========================================
     
     p = doc.add_paragraph()
-    run = p.add_run(f"Rio de Janeiro, {datetime.now().strftime('%d de %B de %Y')}")
+    run = p.add_run("At.te.")
     run.italic = True
     
+    doc.add_paragraph()
     doc.add_paragraph()
     doc.add_paragraph()
     
@@ -247,13 +300,7 @@ def gerar_despacho_word(dados, presentes, ausentes, recomendacao):
     run = p.add_run("___________________________________")
     run.bold = True
     
-    p = doc.add_paragraph()
-    run = p.add_run("Auditor Interno")
-    run.italic = True
-    
-    p = doc.add_paragraph()
-    run = p.add_run("IPEm/RJ")
-    run.italic = True
+    doc.add_paragraph()
     
     return doc
 
@@ -263,27 +310,33 @@ def gerar_despacho_word(dados, presentes, ausentes, recomendacao):
 
 if arquivo is not None:
     
-    with st.spinner("🔍 Analisando e gerando despacho..."):
+    with st.spinner("🔍 Analisando processo e gerando despacho AUDIT..."):
         
         # Extrair texto
         texto = extrair_texto_pdf(arquivo)
         
-        # Extrair dados
+        # Extrair dados básicos
         dados = extrair_dados_basicos(texto)
         
         # Verificar documentos
-        presentes, ausentes = verificar_documentos_obrigatorios(texto)
+        resultados, num_parecer = verificar_documentos_obrigatorios(texto)
         
         # Incrementar contador
         st.session_state.processos_analisados += 1
         
+        # Calcular percentual de documentos encontrados
+        total_itens = 7  # Total de itens obrigatórios
+        encontrados = len(resultados['planejamento']) + len(resultados['economicidade']) + \
+                     len(resultados['legalidade']) + len(resultados['controle'])
+        percentual = (encontrados / total_itens) * 100
+        
         # Determinar recomendação
-        if not ausentes:
+        if encontrados >= 6:
             recomendacao = "PROSSEGUIMENTO"
-        elif len(ausentes) <= 2 and not any(x in str(ausentes) for x in ['Parecer', 'Termo', 'Estudo']):
+        elif encontrados >= 4:
             recomendacao = "PROSSEGUIMENTO COM RESSALVAS"
         else:
-            recomendacao = "AGUARDAR"
+            recomendacao = "AGUARDAR COMPLEMENTAÇÃO"
         
         # ========================================
         # EXIBIR RESULTADO NA TELA
@@ -291,14 +344,16 @@ if arquivo is not None:
         
         st.success("✅ Análise concluída!")
         
+        # Métricas principais
         col1, col2, col3 = st.columns(3)
         with col1:
             st.metric("Processo", dados['processo'])
         with col2:
-            st.metric("Documentos presentes", len(presentes))
+            st.metric("Documentos encontrados", f"{encontrados}/{total_itens}")
         with col3:
-            st.metric("Documentos ausentes", len(ausentes))
+            st.metric("Percentual", f"{percentual:.1f}%")
         
+        # Recomendação em destaque
         if recomendacao == "PROSSEGUIMENTO":
             st.success(f"**RECOMENDAÇÃO: {recomendacao}**")
         elif recomendacao == "PROSSEGUIMENTO COM RESSALVAS":
@@ -306,29 +361,45 @@ if arquivo is not None:
         else:
             st.error(f"**RECOMENDAÇÃO: {recomendacao}**")
         
-        col_left, col_right = st.columns(2)
-        
-        with col_left:
-            st.subheader("✅ Documentos identificados")
-            for doc in presentes:
-                st.write(f"✓ {doc}")
-        
-        with col_right:
-            if ausentes:
-                st.subheader("❌ Documentos não localizados")
-                for doc in ausentes:
-                    st.write(f"✗ {doc}")
+        # Detalhamento dos documentos
+        with st.expander("📋 Ver detalhamento da análise", expanded=True):
+            
+            col_left, col_right = st.columns(2)
+            
+            with col_left:
+                st.subheader("✅ Documentos encontrados")
+                
+                for item in resultados['planejamento']:
+                    st.write(item)
+                for item in resultados['economicidade']:
+                    st.write(item)
+                for item in resultados['legalidade']:
+                    st.write(item)
+                for item in resultados['controle']:
+                    st.write(item)
+            
+            with col_right:
+                st.subheader("❌ Possíveis ausências")
+                
+                if len(resultados['planejamento']) < 4:
+                    st.write("• Complementar documentos de planejamento")
+                if len(resultados['economicidade']) < 1:
+                    st.write("• Incluir pesquisa de preços")
+                if len(resultados['legalidade']) < 1:
+                    st.write("• Incluir parecer jurídico")
+                if len(resultados['controle']) < 1:
+                    st.write("• Verificar segregação de funções")
         
         st.markdown("---")
         
         # ========================================
-        # BOTÃO DE DOWNLOAD SIMPLIFICADO
+        # BOTÃO DE DOWNLOAD DO DESPACHO
         # ========================================
         
-        st.subheader("📥 Download do Despacho")
+        st.subheader("📥 Download do Despacho AUDIT")
         
         # Gerar documento
-        doc = gerar_despacho_word(dados, presentes, ausentes, recomendacao)
+        doc = gerar_despacho_audit(dados, resultados, num_parecer, recomendacao)
         
         # Salvar em arquivo temporário
         with tempfile.NamedTemporaryFile(delete=False, suffix='.docx') as tmp:
@@ -342,28 +413,86 @@ if arquivo is not None:
         # Remover arquivo temporário
         os.unlink(tmp_path)
         
+        # Nome do arquivo
+        data_atual = datetime.now().strftime("%Y%m%d")
+        nome_arquivo = f"DESPACHO_AUDIT_{dados['processo'].replace('/', '_')}_{data_atual}.docx"
+        
         # Botão de download
         st.download_button(
-            label="📥 CLIQUE AQUI PARA BAIXAR O DESPACHO (WORD)",
+            label="📥 CLIQUE AQUI PARA BAIXAR O DESPACHO AUDIT (WORD)",
             data=doc_bytes,
-            file_name=f"DESPACHO_{dados['processo'].replace('/', '_')}.docx",
+            file_name=nome_arquivo,
             mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
             use_container_width=True
         )
         
-        st.info("✅ Despacho gerado! Clique no botão acima para baixar.")
+        # Prévia do despacho
+        with st.expander("📄 Prévia do despacho gerado"):
+            st.text(f"""
+1. OBJETO E ESCOPO
+==================
+Trata-se da análise de conformidade da instrução processual relativa à {dados['objeto']}, 
+com fulcro na Lei nº 14.133/2021. A presente manifestação desta Auditoria Interna (AUDINT) 
+limita-se ao exame da regularidade do rito administrativo, não adentrando no mérito técnico 
+ou na discricionariedade da despesa.
+
+2. VERIFICAÇÃO DA INSTRUÇÃO
+===========================
+Verificamos que o processo seguiu o fluxo obrigatório da fase preparatória, estando 
+devidamente instruído com os seguintes elementos essenciais:
+
+• Planejamento:
+{chr(10).join(resultados['planejamento']) if resultados['planejamento'] else '  • Nenhum documento de planejamento identificado'}
+
+• Economicidade:
+{chr(10).join(resultados['economicidade']) if resultados['economicidade'] else '  • Nenhuma pesquisa de preços identificada'}
+
+• Legalidade:
+{chr(10).join(resultados['legalidade']) if resultados['legalidade'] else f'  • Nenhum parecer jurídico identificado'}
+
+3. CONSIDERAÇÕES DE CONTROLE
+============================
+Considerando que a Assessoria Jurídica não apontou óbices e que as áreas técnicas 
+certificaram a adequação dos quantitativos e especificações, esta AUDIT registra que:
+
+• As etapas de controle preventivo foram observadas;
+• A segregação de funções foi respeitada;
+• {recomendacao}
+
+4. CONCLUSÃO
+============
+{recomendacao}
+            """)
+        
+        st.info("✅ Despacho gerado com sucesso! Clique no botão acima para baixar.")
 
 else:
-    st.info("👆 Faça upload do PDF para gerar o despacho")
+    # TELA INICIAL
+    st.info("👆 Faça upload do PDF do processo para gerar o despacho AUDIT")
     
-    with st.expander("📌 Como funciona?"):
+    with st.expander("📌 Modelo de despacho utilizado"):
         st.write("""
-        1. Faça upload do PDF do processo
-        2. O sistema analisa automaticamente
-        3. Gera um despacho em Word
-        4. Você baixa e anexa no SEI
+        **1. OBJETO E ESCOPO**
+        
+        Trata-se da análise de conformidade da instrução processual relativa à aquisição..., 
+        com fulcro na Lei nº 14.133/2021...
+        
+        **2. VERIFICAÇÃO DA INSTRUÇÃO**
+        
+        • Planejamento: Justificativa Técnica, ETP e TR...
+        • Economicidade: Pesquisa de preços...
+        • Legalidade: Parecer Jurídico...
+        
+        **3. CONSIDERAÇÕES DE CONTROLE**
+        
+        • Etapas de controle preventivo observadas...
+        • Segregação de funções respeitada...
+        
+        **4. CONCLUSÃO**
+        
+        Diante da regularidade formal, indica-se o prosseguimento...
         """)
 
 # RODAPÉ
 st.markdown("---")
-st.caption(f"© 2026 - Auditoria Interna IPEm/RJ - Gerador de Despachos v2.0")
+st.caption(f"© 2026 - Auditoria Interna IPEm/RJ - Gerador de Despachos AUDIT v1.0")
