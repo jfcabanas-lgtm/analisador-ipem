@@ -1,561 +1,417 @@
 # ============================================
-# DESPACHO AUDIT - VERSÃO PREMIUM
-# COM INTERFACE MODERNA E PROFISSIONAL
+# DESPACHO AUDIT - VERSÃO FORMULÁRIO
+# PREENCHA OS DADOS E O DESPACHO SAI PERFEITO!
 # ============================================
 
 import streamlit as st
-import pdfplumber
-import re
 from datetime import datetime
-import io
 from docx import Document
 from docx.shared import Pt
+from docx.enum.text import WD_ALIGN_PARAGRAPH
 import tempfile
 import os
-import base64
-from PIL import Image
-import time
+import io
 
-# ============================================
-# CONFIGURAÇÃO DA PÁGINA (ABAS BONITAS)
-# ============================================
-
+# CONFIGURAÇÃO DA PÁGINA
 st.set_page_config(
-    page_title="IPEm Auditoria - Despacho Automático",
+    page_title="IPEm - Gerador de Despachos",
     page_icon="⚖️",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# ============================================
-# CSS PERSONALIZADO PARA DEIXAR TUDO BONITO
-# ============================================
-
+# CSS PERSONALIZADO
 st.markdown("""
 <style>
-    /* Fonte principal */
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-    
-    html, body, [class*="css"] {
-        font-family: 'Inter', sans-serif;
-    }
-    
-    /* Cabeçalho gradiente */
-    .header-gradient {
-        background: linear-gradient(90deg, #003366 0%, #0047ab 50%, #1e3c72 100%);
+    .header {
+        background: linear-gradient(90deg, #003366 0%, #0047ab 100%);
         padding: 2rem;
         border-radius: 20px;
-        margin-bottom: 2rem;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
         color: white;
+        text-align: center;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
     }
-    
-    .header-title {
-        font-size: 3rem;
-        font-weight: 700;
+    .header h1 {
+        font-size: 2.5rem;
         margin-bottom: 0.5rem;
-        letter-spacing: -0.5px;
     }
-    
-    .header-subtitle {
-        font-size: 1.2rem;
+    .header p {
+        font-size: 1.1rem;
         opacity: 0.9;
-        font-weight: 300;
     }
-    
-    /* Cartões */
     .card {
         background: white;
-        padding: 1.8rem;
-        border-radius: 20px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        padding: 2rem;
+        border-radius: 15px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
         border: 1px solid #eef2f6;
-        transition: transform 0.3s ease, box-shadow 0.3s ease;
-        height: 100%;
-    }
-    
-    .card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 8px 25px rgba(0,51,102,0.15);
-        border-color: #003366;
-    }
-    
-    .card-icon {
-        font-size: 2.5rem;
         margin-bottom: 1rem;
     }
-    
-    .card-title {
+    .section-title {
+        color: #003366;
         font-size: 1.3rem;
         font-weight: 600;
-        color: #003366;
-        margin-bottom: 0.8rem;
+        margin-bottom: 1.5rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 2px solid #eef2f6;
     }
-    
-    .card-text {
-        color: #4a5568;
-        line-height: 1.6;
-        font-size: 0.95rem;
-    }
-    
-    /* Métricas */
-    .metric-box {
-        background: linear-gradient(135deg, #f8faff 0%, #f0f4ff 100%);
-        padding: 1.2rem;
-        border-radius: 15px;
-        border-left: 4px solid #003366;
-        margin: 0.5rem 0;
-    }
-    
-    .metric-label {
-        font-size: 0.9rem;
-        color: #64748b;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
-    
-    .metric-value {
-        font-size: 1.8rem;
-        font-weight: 700;
-        color: #003366;
-        line-height: 1.2;
-    }
-    
-    /* Botões personalizados */
-    .stButton > button {
-        background: linear-gradient(90deg, #003366 0%, #0047ab 100%);
-        color: white;
-        font-weight: 500;
-        padding: 0.8rem 2rem;
-        border-radius: 12px;
-        border: none;
-        box-shadow: 0 4px 15px rgba(0,51,102,0.3);
-        transition: all 0.3s ease;
-        font-size: 1.1rem;
-        letter-spacing: 0.5px;
-        width: 100%;
-    }
-    
-    .stButton > button:hover {
-        background: linear-gradient(90deg, #0047ab 0%, #003366 100%);
-        box-shadow: 0 6px 20px rgba(0,51,102,0.4);
-        transform: translateY(-2px);
-    }
-    
-    /* Upload box */
-    .upload-box {
-        border: 3px dashed #cbd5e1;
-        border-radius: 20px;
-        padding: 2.5rem;
-        text-align: center;
-        background: #f8fafc;
-        transition: all 0.3s ease;
-    }
-    
-    .upload-box:hover {
-        border-color: #003366;
+    .info-box {
         background: #f0f4ff;
-    }
-    
-    /* Status colors */
-    .success-tag {
-        background: #10b981;
-        color: white;
-        padding: 0.3rem 0.8rem;
-        border-radius: 20px;
-        font-size: 0.8rem;
-        font-weight: 600;
-        display: inline-block;
-    }
-    
-    .warning-tag {
-        background: #f59e0b;
-        color: white;
-        padding: 0.3rem 0.8rem;
-        border-radius: 20px;
-        font-size: 0.8rem;
-        font-weight: 600;
-        display: inline-block;
-    }
-    
-    .info-tag {
-        background: #3b82f6;
-        color: white;
-        padding: 0.3rem 0.8rem;
-        border-radius: 20px;
-        font-size: 0.8rem;
-        font-weight: 600;
-        display: inline-block;
-    }
-    
-    /* Tabs personalizadas */
-    .stTabs [data-baseweb="tab-list"] {
-        gap: 2rem;
-        background-color: #f8fafc;
-        padding: 0.5rem;
-        border-radius: 15px;
-    }
-    
-    .stTabs [data-baseweb="tab"] {
-        border-radius: 12px;
-        padding: 0.8rem 1.5rem;
-        font-weight: 500;
-    }
-    
-    /* Animações */
-    @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(20px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-    
-    .fade-in {
-        animation: fadeIn 0.6s ease-out;
+        padding: 1rem;
+        border-radius: 10px;
+        border-left: 4px solid #003366;
+        margin-bottom: 1rem;
     }
 </style>
 """, unsafe_allow_html=True)
 
-# ============================================
-# CABEÇALHO BONITO
-# ============================================
-
+# CABEÇALHO
 st.markdown("""
-<div class="header-gradient fade-in">
-    <div style="display: flex; justify-content: space-between; align-items: center;">
-        <div>
-            <div class="header-title">⚖️ IPEm Auditoria</div>
-            <div class="header-subtitle">Sistema Inteligente de Análise e Despacho Automático</div>
-        </div>
-        <div style="background: rgba(255,255,255,0.1); padding: 1rem; border-radius: 15px;">
-            <span style="font-size: 1rem;">🔒 Ambiente Seguro</span>
-        </div>
-    </div>
+<div class="header">
+    <h1>⚖️ IPEm - Gerador de Despachos</h1>
+    <p>Preencha os dados do processo e gere o despacho automaticamente</p>
+    <p style="font-size: 0.9rem; margin-top: 1rem;">Modelo conforme Lei 14.133/2021</p>
 </div>
 """, unsafe_allow_html=True)
 
 # ============================================
-# LAYOUT PRINCIPAL COM ABAS
+# FORMULÁRIO DE ENTRADA
 # ============================================
 
-tab1, tab2, tab3 = st.tabs(["📋 NOVO DESPACHO", "📊 ESTATÍSTICAS", "ℹ️ AJUDA"])
-
-with tab1:
+with st.form("form_despacho"):
     
-    # COLUNAS PARA O UPLOAD
-    col_upload, col_info = st.columns([2, 1])
+    st.markdown('<div class="section-title">📋 DADOS DO PROCESSO</div>', unsafe_allow_html=True)
     
-    with col_upload:
-        st.markdown("""
-        <div class="card fade-in">
-            <div class="card-icon">📎</div>
-            <div class="card-title">Upload do Processo</div>
-            <div class="card-text">
-                Arraste o arquivo PDF do processo SEI ou clique para selecionar.
-                O sistema extrairá automaticamente as informações.
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        processo_sei = st.text_input(
+            "Nº do Processo SEI *",
+            placeholder="Ex: 150014/001585/2025",
+            help="Número completo do processo"
+        )
         
-        st.markdown("<br>", unsafe_allow_html=True)
+        objeto = st.text_input(
+            "Objeto da Contratação *",
+            placeholder="Ex: aquisição de sacos plásticos",
+            help="O que está sendo contratado"
+        )
         
-        arquivo = st.file_uploader(
-            "Selecione o arquivo",
-            type=['pdf'],
-            label_visibility="collapsed"
+        data_autorizacao = st.date_input(
+            "Data da Autorização",
+            format="DD/MM/YYYY",
+            help="Data em que o processo foi autorizado"
         )
     
-    with col_info:
-        st.markdown("""
-        <div class="card fade-in">
-            <div class="card-icon">⚡</div>
-            <div class="card-title">Benefícios</div>
-            <div class="card-text">
-                • Análise automática<br>
-                • Despacho em Word<br>
-                • Conforme Lei 14.133<br>
-                • Economia de tempo
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-
-with tab2:
-    st.markdown("""
-    <div class="card fade-in">
-        <div class="card-icon">📊</div>
-        <div class="card-title">Estatísticas de Uso</div>
-    </div>
-    """, unsafe_allow_html=True)
+    with col2:
+        sei_inicio = st.text_input(
+            "SEI da Solicitação Inicial",
+            placeholder="Ex: 12345678",
+            help="Número do documento SEI da solicitação"
+        )
+        
+        sei_autorizacao = st.text_input(
+            "SEI da Autorização",
+            placeholder="Ex: 12345679",
+            help="Número do documento SEI da autorização"
+        )
+        
+        data_inicio = st.date_input(
+            "Data de Início",
+            format="DD/MM/YYYY",
+            help="Data em que o processo foi iniciado"
+        )
     
-    col_est1, col_est2, col_est3, col_est4 = st.columns(4)
+    st.markdown('<div class="section-title">📑 DOCUMENTOS TÉCNICOS</div>', unsafe_allow_html=True)
     
-    with col_est1:
-        st.markdown("""
-        <div class="metric-box">
-            <div class="metric-label">Processos Analisados</div>
-            <div class="metric-value">127</div>
-        </div>
-        """, unsafe_allow_html=True)
+    col3, col4 = st.columns(2)
     
-    with col_est2:
-        st.markdown("""
-        <div class="metric-box">
-            <div class="metric-label">Despachos Gerados</div>
-            <div class="metric-value">98</div>
-        </div>
-        """, unsafe_allow_html=True)
+    with col3:
+        etp_numero = st.text_input(
+            "Nº do ETP",
+            placeholder="Ex: 31/2025",
+            help="Estudo Técnico Preliminar"
+        )
+        
+        sei_etp = st.text_input(
+            "SEI do ETP",
+            placeholder="Ex: 12345680"
+        )
+        
+        tr_numero = st.text_input(
+            "Nº do TR",
+            placeholder="Ex: 46/2025",
+            help="Termo de Referência"
+        )
+        
+        sei_tr = st.text_input(
+            "SEI do TR",
+            placeholder="Ex: 12345681"
+        )
     
-    with col_est3:
-        st.markdown("""
-        <div class="metric-box">
-            <div class="metric-label">Tempo Médio</div>
-            <div class="metric-value">23s</div>
-        </div>
-        """, unsafe_allow_html=True)
+    with col4:
+        risco_numero = st.text_input(
+            "Nº da Matriz de Riscos",
+            placeholder="Ex: 26/2025"
+        )
+        
+        sei_risco = st.text_input(
+            "SEI da Matriz de Riscos",
+            placeholder="Ex: 12345682"
+        )
+        
+        req_siga = st.text_input(
+            "Nº da Requisição SIGA",
+            placeholder="Ex: 05/2026",
+            help="Requisição de Material no SIGA"
+        )
+        
+        valor = st.number_input(
+            "Valor Total (R$)",
+            min_value=0.0,
+            step=100.0,
+            format="%.2f",
+            help="Valor estimado da contratação"
+        )
     
-    with col_est4:
-        st.markdown("""
-        <div class="metric-box">
-            <div class="metric-label">Economia</div>
-            <div class="metric-value">+40h</div>
-        </div>
-        """, unsafe_allow_html=True)
-
-with tab3:
-    st.markdown("""
-    <div class="card fade-in">
-        <div class="card-icon">ℹ️</div>
-        <div class="card-title">Como usar o sistema</div>
-        <div class="card-text">
-            <ol style="margin-top: 1rem;">
-                <li><strong>Upload do PDF:</strong> Selecione o arquivo do processo SEI</li>
-                <li><strong>Análise automática:</strong> O sistema extrai os dados</li>
-                <li><strong>Geração do despacho:</strong> Clique no botão para gerar</li>
-                <li><strong>Download:</strong> Salve o arquivo Word e anexe ao SEI</li>
-            </ol>
-            <p style="margin-top: 1rem; color: #64748b;">
-                Base legal: Lei 14.133/2021 e normas internas do IPEm/RJ
-            </p>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-
-# ============================================
-# PROCESSAMENTO (quando arquivo é carregado)
-# ============================================
-
-if arquivo:
+    st.markdown('<div class="section-title">⚖️ DOCUMENTOS JURÍDICOS E ORÇAMENTÁRIOS</div>', unsafe_allow_html=True)
     
-    with st.spinner("🔍 Analisando processo..."):
+    col5, col6 = st.columns(2)
+    
+    with col5:
+        sei_impacto = st.text_input(
+            "SEI da Declaração de Impacto",
+            placeholder="Ex: 12345683"
+        )
         
-        # Simular processamento (remova em produção)
-        time.sleep(1)
+        sei_disponibilidade = st.text_input(
+            "SEI da Disponibilidade Orçamentária",
+            placeholder="Ex: 12345684"
+        )
         
-        # Extrair texto
-        texto = ""
-        with pdfplumber.open(io.BytesIO(arquivo.read())) as pdf:
-            for pagina in pdf.pages:
-                if pagina.extract_text():
-                    texto += pagina.extract_text() + "\n"
+        sei_ordenador = st.text_input(
+            "SEI da Declaração do Ordenador",
+            placeholder="Ex: 12345685"
+        )
+    
+    with col6:
+        parecer_numero = st.text_input(
+            "Nº do Despacho Jurídico",
+            placeholder="Ex: 125375247"
+        )
         
-        # Mostrar resultado em cards bonitos
-        st.markdown("---")
-        st.markdown("""
-        <div class="card fade-in">
-            <div class="card-icon">✅</div>
-            <div class="card-title">Análise Concluída</div>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        # Métricas encontradas
-        col_res1, col_res2, col_res3 = st.columns(3)
-        
-        with col_res1:
-            processo = re.search(r'Processo[:\s]*n[º°]?\s*([\d\-/]+)', texto, re.IGNORECASE)
-            valor_processo = processo.group(1) if processo else "Não identificado"
-            
-            st.markdown(f"""
-            <div class="metric-box">
-                <div class="metric-label">📋 Nº Processo</div>
-                <div class="metric-value">{valor_processo}</div>
-            </div>
-            """, unsafe_allow_html=True)
-        
-        with col_res2:
-            valor = re.search(r'R\$\s*([\d.,]+)', texto)
-            valor_encontrado = valor.group(1) if valor else "Não identificado"
-            
-            st.markdown(f"""
-            <div class="metric-box">
-                <div class="metric-label">💰 Valor</div>
-                <div class="metric-value">R$ {valor_encontrado}</div>
-            </div>
-            """, unsafe_allow_html=True)
-        
-        with col_res3:
-            data = re.search(r'(\d{1,2})[/](\d{1,2})[/](\d{4})', texto)
-            data_encontrada = f"{data.group(1)}/{data.group(2)}/{data.group(3)}" if data else "Não identificada"
-            
-            st.markdown(f"""
-            <div class="metric-box">
-                <div class="metric-label">📅 Data</div>
-                <div class="metric-value">{data_encontrada}</div>
-            </div>
-            """, unsafe_allow_html=True)
-        
-        # Documentos encontrados (tags coloridas)
-        st.markdown("<br>", unsafe_allow_html=True)
-        st.markdown("""
-        <div class="card-title">📑 Documentos Identificados</div>
-        """, unsafe_allow_html=True)
-        
-        col_doc1, col_doc2, col_doc3 = st.columns(3)
-        
-        with col_doc1:
-            if re.search(r'estudo preliminar|etp', texto, re.IGNORECASE):
-                st.markdown('<span class="success-tag">✅ ETP</span>', unsafe_allow_html=True)
-            else:
-                st.markdown('<span class="warning-tag">⚠️ ETP</span>', unsafe_allow_html=True)
-            
-            if re.search(r'termo de referência|tr', texto, re.IGNORECASE):
-                st.markdown('<span class="success-tag">✅ TR</span>', unsafe_allow_html=True)
-            else:
-                st.markdown('<span class="warning-tag">⚠️ TR</span>', unsafe_allow_html=True)
-        
-        with col_doc2:
-            if re.search(r'pesquisa de preços|mapa', texto, re.IGNORECASE):
-                st.markdown('<span class="success-tag">✅ Pesquisa</span>', unsafe_allow_html=True)
-            else:
-                st.markdown('<span class="warning-tag">⚠️ Pesquisa</span>', unsafe_allow_html=True)
-            
-            if re.search(r'justificativa', texto, re.IGNORECASE):
-                st.markdown('<span class="success-tag">✅ Justificativa</span>', unsafe_allow_html=True)
-            else:
-                st.markdown('<span class="warning-tag">⚠️ Justificativa</span>', unsafe_allow_html=True)
-        
-        with col_doc3:
-            if re.search(r'parecer jurídico|assessoria', texto, re.IGNORECASE):
-                st.markdown('<span class="success-tag">✅ Parecer</span>', unsafe_allow_html=True)
-            else:
-                st.markdown('<span class="warning-tag">⚠️ Parecer</span>', unsafe_allow_html=True)
-            
-            if re.search(r'publicação|diário oficial', texto, re.IGNORECASE):
-                st.markdown('<span class="success-tag">✅ Publicação</span>', unsafe_allow_html=True)
-            else:
-                st.markdown('<span class="warning-tag">⚠️ Publicação</span>', unsafe_allow_html=True)
-        
-        # Botão de download estilizado
-        st.markdown("<br><br>", unsafe_allow_html=True)
-        
-        col_btn1, col_btn2, col_btn3 = st.columns([1, 2, 1])
-        
-        with col_btn2:
-            if st.button("📥 GERAR DESPACHO EM WORD", use_container_width=True):
-                
-                with st.spinner("Gerando documento..."):
-                    
-                    # Criar documento Word
-                    doc = Document()
-                    style = doc.styles['Normal']
-                    style.font.name = 'Arial'
-                    style.font.size = Pt(12)
-                    
-                    # I. INTRODUÇÃO
-                    doc.add_paragraph().add_run("I. Introdução").bold = True
-                    doc.add_paragraph(
-                        f"Atendendo à solicitação de análise do processo SEI nº {valor_processo}, "
-                        f"pela Diretoria de Administração e Finanças – DIRAF, referente à aquisição de "
-                        f"materiais para o Instituto de Pesos e Medidas do Estado do Rio de Janeiro "
-                        f"(IPEM/RJ), procedemos à verificação dos documentos apresentados, com o objetivo "
-                        f"de subsidiar a continuidade do processo, sem adentrar no mérito técnico da contratação."
-                    )
-                    
-                    doc.add_paragraph()
-                    
-                    # II. ANÁLISE PROCESSUAL
-                    doc.add_paragraph().add_run("II. Análise Processual").bold = True
-                    doc.add_paragraph("Foram examinados os seguintes documentos e etapas processuais:")
-                    doc.add_paragraph()
-                    
-                    doc.add_paragraph("1. Solicitação Inicial e Autorização: ", style='List Number').add_run(
-                        f"Processo devidamente autorizado."
-                    )
-                    
-                    doc.add_paragraph("2. Estudo Técnico Preliminar (ETP) e Gestão de Riscos: ", style='List Number').add_run(
-                        f"Documentos analisados conforme legislação."
-                    )
-                    
-                    doc.add_paragraph("3. Termo de Referência (TR): ", style='List Number').add_run(
-                        f"Especificações técnicas consolidadas."
-                    )
-                    
-                    doc.add_paragraph("4. Pesquisa de Mercado: ", style='List Number').add_run(
-                        f"Valor estimado: R$ {valor_encontrado}."
-                    )
-                    
-                    doc.add_paragraph("5. Conformidade Orçamentária: ", style='List Number').add_run(
-                        f"Declarações de impacto financeiro presentes."
-                    )
-                    
-                    doc.add_paragraph("6. Parecer Jurídico: ", style='List Number').add_run(
-                        f"Documento analisado."
-                    )
-                    
-                    doc.add_paragraph()
-                    
-                    # III. OBSERVAÇÕES
-                    doc.add_paragraph().add_run("III. Observações").bold = True
-                    doc.add_paragraph(
-                        "Verifica-se que o processo encontra-se devidamente instruído, tendo percorrido as etapas "
-                        "formais exigidas pela legislação vigente."
-                    )
-                    
-                    doc.add_paragraph()
-                    
-                    # IV. DESPACHO
-                    doc.add_paragraph().add_run("IV. Despacho").bold = True
-                    doc.add_paragraph()
-                    doc.add_paragraph()
-                    doc.add_paragraph("At.te.,")
-                    doc.add_paragraph()
-                    doc.add_paragraph("___________________________________")
-                    doc.add_paragraph("Auditor Interno")
-                    doc.add_paragraph("IPEm/RJ")
-                    
-                    # Salvar
-                    with tempfile.NamedTemporaryFile(delete=False, suffix='.docx') as tmp:
-                        doc.save(tmp.name)
-                        tmp_path = tmp.name
-                    
-                    with open(tmp_path, 'rb') as f:
-                        doc_bytes = f.read()
-                    
-                    os.unlink(tmp_path)
-                    
-                    # Mostrar mensagem de sucesso
-                    st.balloons()
-                    st.success("✅ Despacho gerado com sucesso!")
-                    
-                    # Botão de download
-                    st.download_button(
-                        label="📥 CLIQUE PARA BAIXAR",
-                        data=doc_bytes,
-                        file_name=f"DESPACHO_AUDIT_{valor_processo.replace('/', '_')}.docx",
-                        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                        use_container_width=True
-                    )
+        fundamentacao = st.text_area(
+            "Fundamentação Legal",
+            value="art. 1º da Resolução PGE nº 5.059/2024 e no art. 95, I, da Lei nº 14.133/2021",
+            height=80
+        )
+    
+    st.markdown('<div class="section-title">📝 OBSERVAÇÕES</div>', unsafe_allow_html=True)
+    
+    observacoes = st.text_area(
+        "Observações (opcional)",
+        placeholder="Inclua aqui qualquer observação adicional relevante...",
+        height=100
+    )
+    
+    st.markdown("---")
+    
+    # BOTÃO DE ENVIO
+    submitted = st.form_submit_button(
+        "✅ GERAR DESPACHO EM WORD",
+        use_container_width=True,
+        type="primary"
+    )
 
 # ============================================
-# RODAPÉ BONITO
+# PROCESSAR FORMULÁRIO
+# ============================================
+
+if submitted:
+    
+    # Validar campos obrigatórios
+    if not processo_sei or not objeto:
+        st.error("❌ Preencha pelo menos o número do processo e o objeto da contratação!")
+    else:
+        
+        with st.spinner("⏳ Gerando despacho..."):
+            
+            # Criar documento Word
+            doc = Document()
+            style = doc.styles['Normal']
+            style.font.name = 'Arial'
+            style.font.size = Pt(12)
+            
+            # ========================================
+            # I. INTRODUÇÃO
+            # ========================================
+            p = doc.add_paragraph()
+            p.add_run("I. Introdução").bold = True
+            
+            texto_intro = (
+                f"Atendendo à solicitação de análise do processo SEI nº {processo_sei}, "
+                f"pela Diretoria de Administração e Finanças – DIRAF, referente à {objeto} "
+                f"para o Instituto de Pesos e Medidas do Estado do Rio de Janeiro (IPEM/RJ), "
+                f"procedemos à verificação dos documentos apresentados, com o objetivo de "
+                f"subsidiar a continuidade do processo, sem adentrar no mérito técnico da contratação."
+            )
+            doc.add_paragraph(texto_intro)
+            doc.add_paragraph()
+            
+            # ========================================
+            # II. ANÁLISE PROCESSUAL
+            # ========================================
+            p = doc.add_paragraph()
+            p.add_run("II. Análise Processual").bold = True
+            doc.add_paragraph("Foram examinados os seguintes documentos e etapas processuais:")
+            doc.add_paragraph()
+            
+            # Item 1
+            p = doc.add_paragraph()
+            p.add_run("1. Solicitação Inicial e Autorização: ").bold = True
+            texto1 = (
+                f"O processo foi iniciado pela Superintendência de Pré-Medidos "
+                f"{'SEI ' + sei_inicio if sei_inicio else ''} e devidamente autorizado "
+                f"pela Presidência do IPEM/RJ em {data_autorizacao.strftime('%d/%m/%Y') if data_autorizacao else 'data não informada'} "
+                f"{'SEI ' + sei_autorizacao if sei_autorizacao else ''}."
+            )
+            p.add_run(texto1)
+            
+            # Item 2
+            p = doc.add_paragraph()
+            p.add_run("2. Estudo Técnico Preliminar-ETP e Gestão de Riscos: ").bold = True
+            texto2 = (
+                f"O ETP nº {etp_numero if etp_numero else 'não informado'} "
+                f"{'SEI ' + sei_etp if sei_etp else ''} e a Matriz de Riscos nº {risco_numero if risco_numero else 'não informada'} "
+                f"{'SEI ' + sei_risco if sei_risco else ''} detalham a necessidade, viabilidade técnica e ações de mitigação para a contratação."
+            )
+            p.add_run(texto2)
+            
+            # Item 3
+            p = doc.add_paragraph()
+            p.add_run("3. Termo de Referência-TR: ").bold = True
+            texto3 = (
+                f"O TR nº {tr_numero if tr_numero else 'não informado'}, "
+                f"{'SEI ' + sei_tr if sei_tr else ''}, consolida as especificações técnicas e condições contratuais, "
+                f"servindo de balizador para a fase externa."
+            )
+            p.add_run(texto3)
+            
+            # Item 4
+            p = doc.add_paragraph()
+            p.add_run("4. Pesquisa de Mercado e Requisição SIGA: ").bold = True
+            texto4 = (
+                f"Foi realizada pesquisa de mercado formal, com a devida inclusão da Requisição de Material nº {req_siga if req_siga else 'não informada'} "
+                f"no Sistema Integrado de Gestão de Aquisições (SIGA), totalizando o valor estimado de R$ {valor:,.2f}." if valor else
+                f"Foi realizada pesquisa de mercado formal, com a devida inclusão da Requisição de Material nº {req_siga if req_siga else 'não informada'} "
+                f"no Sistema Integrado de Gestão de Aquisições (SIGA)."
+            )
+            p.add_run(texto4)
+            
+            # Item 5
+            p = doc.add_paragraph()
+            p.add_run("5. Conformidade Orçamentária: ").bold = True
+            texto5 = (
+                f"O processo conta com as declarações de impacto financeiro {'SEI ' + sei_impacto if sei_impacto else ''}, "
+                f"disponibilidade orçamentária {'SEI ' + sei_disponibilidade if sei_disponibilidade else ''} e a declaração do ordenador de despesa "
+                f"{'SEI ' + sei_ordenador if sei_ordenador else ''}, atestando a compatibilidade com o orçamento e o Plano Plurianual (PPA/RJ) para 2026."
+            )
+            p.add_run(texto5)
+            
+            # Item 6
+            p = doc.add_paragraph()
+            p.add_run("6. Parecer Jurídico: ").bold = True
+            texto6 = (
+                f"A Diretoria Jurídica manifestou-se por meio do Despacho SEI {parecer_numero if parecer_numero else 'não informado'}, "
+                f"informando a dispensa de análise jurídica formal em razão do valor da contratação, fundamentada na {fundamentacao}."
+            )
+            p.add_run(texto6)
+            
+            doc.add_paragraph()
+            
+            # ========================================
+            # III. OBSERVAÇÕES
+            # ========================================
+            p = doc.add_paragraph()
+            p.add_run("III. Observações").bold = True
+            
+            if observacoes:
+                doc.add_paragraph(observacoes)
+            else:
+                doc.add_paragraph(
+                    "Verifica-se que o processo encontra-se devidamente instruído, tendo percorrido as etapas "
+                    "formais exigidas pela legislação vigente. As especificações técnicas e condições de "
+                    "fornecimento estão consolidadas no Termo de Referência, documento que orientará a fase de "
+                    "seleção do fornecedor."
+                )
+            
+            doc.add_paragraph()
+            
+            # ========================================
+            # IV. DESPACHO
+            # ========================================
+            p = doc.add_paragraph()
+            p.add_run("IV. Despacho").bold = True
+            
+            doc.add_paragraph(
+                "Dessa forma, e considerando que os atos administrativos até o presente momento se mostram "
+                "formalmente adequados e em conformidade com a Lei nº 14.133/2021 e demais normas aplicáveis, "
+                "indicamos à continuidade do processo."
+            )
+            
+            doc.add_paragraph()
+            doc.add_paragraph()
+            doc.add_paragraph()
+            
+            # Assinatura
+            doc.add_paragraph("At.te.,")
+            doc.add_paragraph()
+            doc.add_paragraph("___________________________________")
+            doc.add_paragraph("Auditor Interno")
+            doc.add_paragraph("IPEm/RJ")
+            
+            # Salvar documento
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.docx') as tmp:
+                doc.save(tmp.name)
+                tmp_path = tmp.name
+            
+            with open(tmp_path, 'rb') as f:
+                doc_bytes = f.read()
+            
+            os.unlink(tmp_path)
+            
+            # Nome do arquivo
+            data_atual = datetime.now().strftime("%Y%m%d_%H%M")
+            nome_arquivo = f"DESPACHO_{processo_sei.replace('/', '_')}_{data_atual}.docx"
+            
+            # Mostrar sucesso
+            st.success("✅ DESPACHO GERADO COM SUCESSO!")
+            st.balloons()
+            
+            # Botão de download
+            st.download_button(
+                label="📥 CLIQUE AQUI PARA BAIXAR O DESPACHO",
+                data=doc_bytes,
+                file_name=nome_arquivo,
+                mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                use_container_width=True
+            )
+            
+            # Mostrar prévia
+            with st.expander("📄 Visualizar prévia do despacho"):
+                st.write(f"**Processo:** {processo_sei}")
+                st.write(f"**Objeto:** {objeto}")
+                st.write(f"**Valor:** R$ {valor:,.2f}" if valor else "**Valor:** não informado")
+
+# ============================================
+# RODAPÉ
 # ============================================
 
 st.markdown("---")
-st.markdown("""
-<div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem 0;">
-    <div style="color: #64748b; font-size: 0.9rem;">
-        © 2026 - Auditoria Interna IPEm/RJ • Versão 3.0 Premium
-    </div>
-    <div style="display: flex; gap: 2rem; color: #94a3b8; font-size: 0.9rem;">
-        <span>🔒 Conforme LGPD</span>
-        <span>⚡ Atualizado em {datetime.now().strftime('%d/%m/%Y')}</span>
-    </div>
+st.markdown(f"""
+<div style="text-align: center; color: #64748b; font-size: 0.9rem;">
+    © 2026 - Auditoria Interna IPEm/RJ • Versão 4.0<br>
+    Última atualização: {datetime.now().strftime('%d/%m/%Y %H:%M')}
 </div>
 """, unsafe_allow_html=True)
