@@ -1,6 +1,6 @@
 # ============================================
 # DESPACHO AUDIT - IPEm/RJ
-# VERSÃO COMPLETA COM LOGO CORRIGIDO
+# VERSÃO PREMIUM - TELA DE ENTRADA IMPONENTE
 # ============================================
 
 import streamlit as st
@@ -13,72 +13,470 @@ import tempfile
 import os
 import io
 from PIL import Image
+import base64
 
 # CONFIGURAÇÃO DA PÁGINA
 st.set_page_config(
-    page_title="IPEm - Despacho Inteligente",
+    page_title="IPEm - Sistema de Despacho Inteligente",
     page_icon="⚖️",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
 # ============================================
-# CSS PERSONALIZADO
+# CSS PERSONALIZADO - DESIGN PREMIUM
 # ============================================
 
 st.markdown("""
 <style>
-    .header {background: linear-gradient(90deg, #003366 0%, #0047ab 100%); padding: 2rem; border-radius: 20px; color: white; text-align: center; margin-bottom: 2rem;}
-    .section-title {color: #003366; font-size: 1.3rem; font-weight: 600; margin: 1.5rem 0 1rem 0; border-bottom: 2px solid #eef2f6; padding-bottom: 0.5rem;}
-    .success-box {background: #d4edda; color: #155724; padding: 1rem; border-radius: 10px; border-left: 4px solid #28a745;}
-    .warning-box {background: #fff3cd; color: #856404; padding: 1rem; border-radius: 10px; border-left: 4px solid #ffc107;}
-    .footer {text-align: center; color: #64748b; font-size: 0.9rem; margin-top: 3rem;}
+    /* FONTE PRINCIPAL */
+    @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap');
+    
+    html, body, [class*="css"] {
+        font-family: 'Montserrat', sans-serif;
+    }
+    
+    /* HEADER PRINCIPAL - AZUL INSTITUCIONAL */
+    .main-header {
+        background: linear-gradient(135deg, #001529 0%, #003366 50%, #0047ab 100%);
+        padding: 2.5rem 2rem;
+        border-radius: 30px;
+        margin-bottom: 2rem;
+        box-shadow: 0 20px 40px rgba(0,20,50,0.3);
+        position: relative;
+        overflow: hidden;
+        border: 1px solid rgba(255,255,255,0.1);
+    }
+    
+    .main-header::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="none"><polygon points="0,0 100,0 50,100 0,100" fill="rgba(255,255,255,0.03)"/></svg>');
+        background-size: 50px 50px;
+        opacity: 0.1;
+        pointer-events: none;
+    }
+    
+    .header-content {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        position: relative;
+        z-index: 2;
+    }
+    
+    .header-title {
+        flex: 1;
+    }
+    
+    .header-title h1 {
+        color: white;
+        font-size: 3rem;
+        font-weight: 700;
+        margin: 0;
+        letter-spacing: -0.5px;
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    }
+    
+    .header-title h3 {
+        color: rgba(255,255,255,0.9);
+        font-size: 1.5rem;
+        font-weight: 300;
+        margin: 0.5rem 0 0 0;
+        letter-spacing: 1px;
+    }
+    
+    .header-logo {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 20px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        text-align: center;
+        min-width: 200px;
+        border: 2px solid rgba(255,215,0,0.3);
+    }
+    
+    .header-logo h2 {
+        color: #003366;
+        font-size: 2rem;
+        font-weight: 700;
+        margin: 0;
+        line-height: 1.2;
+    }
+    
+    .header-logo p {
+        color: #666;
+        font-size: 0.9rem;
+        margin: 0.3rem 0 0 0;
+        font-weight: 500;
+    }
+    
+    /* SELO OFICIAL */
+    .official-seal {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        padding: 1rem;
+        border-radius: 15px;
+        text-align: center;
+        border: 1px solid #dee2e6;
+        box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
+    }
+    
+    .official-seal span {
+        font-size: 2rem;
+        display: block;
+        margin-bottom: 0.5rem;
+    }
+    
+    .official-seal p {
+        color: #495057;
+        font-size: 0.8rem;
+        margin: 0;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    
+    /* CARTÕES DE ESTATÍSTICAS */
+    .stats-container {
+        display: flex;
+        gap: 1.5rem;
+        margin: 2rem 0;
+    }
+    
+    .stat-card {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 20px;
+        box-shadow: 0 10px 30px rgba(0,51,102,0.1);
+        flex: 1;
+        text-align: center;
+        border: 1px solid #e9ecef;
+        transition: transform 0.3s ease;
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 40px rgba(0,51,102,0.15);
+    }
+    
+    .stat-icon {
+        font-size: 2.5rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .stat-label {
+        color: #6c757d;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .stat-value {
+        color: #003366;
+        font-size: 2rem;
+        font-weight: 700;
+        margin: 0.5rem 0 0 0;
+    }
+    
+    /* SEÇÕES PRINCIPAIS */
+    .section-premium {
+        background: white;
+        padding: 2rem;
+        border-radius: 20px;
+        margin: 2rem 0;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+        border-left: 5px solid #003366;
+        position: relative;
+    }
+    
+    .section-premium::before {
+        content: "⚖️";
+        position: absolute;
+        top: -15px;
+        left: 30px;
+        background: #003366;
+        color: white;
+        font-size: 1.5rem;
+        padding: 0.5rem 1rem;
+        border-radius: 50px;
+        box-shadow: 0 5px 15px rgba(0,51,102,0.3);
+    }
+    
+    .section-title-premium {
+        color: #003366;
+        font-size: 1.8rem;
+        font-weight: 600;
+        margin-bottom: 1.5rem;
+        padding-left: 3rem;
+    }
+    
+    /* INFO CARDS */
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 1.5rem;
+        margin: 2rem 0;
+    }
+    
+    .info-card {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        padding: 1.5rem;
+        border-radius: 15px;
+        border: 1px solid #dee2e6;
+    }
+    
+    .info-card h4 {
+        color: #003366;
+        font-size: 1.2rem;
+        font-weight: 600;
+        margin: 0 0 1rem 0;
+        border-bottom: 2px solid #003366;
+        padding-bottom: 0.5rem;
+    }
+    
+    .info-card ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+    
+    .info-card li {
+        padding: 0.5rem 0;
+        border-bottom: 1px solid #dee2e6;
+        color: #495057;
+    }
+    
+    .info-card li:last-child {
+        border-bottom: none;
+    }
+    
+    .info-card li::before {
+        content: "•";
+        color: #003366;
+        font-weight: bold;
+        margin-right: 0.5rem;
+    }
+    
+    /* UPLOAD ÁREA */
+    .upload-premium {
+        border: 3px dashed #003366;
+        border-radius: 30px;
+        padding: 3rem;
+        text-align: center;
+        background: linear-gradient(135deg, rgba(0,51,102,0.02) 0%, rgba(0,71,171,0.02) 100%);
+        transition: all 0.3s ease;
+        margin: 2rem 0;
+    }
+    
+    .upload-premium:hover {
+        border-color: #0047ab;
+        background: linear-gradient(135deg, rgba(0,51,102,0.05) 0%, rgba(0,71,171,0.05) 100%);
+        transform: scale(1.02);
+    }
+    
+    .upload-premium span {
+        font-size: 4rem;
+        display: block;
+        margin-bottom: 1rem;
+    }
+    
+    .upload-premium h3 {
+        color: #003366;
+        font-size: 1.8rem;
+        font-weight: 600;
+        margin: 0.5rem 0;
+    }
+    
+    .upload-premium p {
+        color: #6c757d;
+        font-size: 1.1rem;
+        max-width: 600px;
+        margin: 1rem auto;
+    }
+    
+    /* BOTÕES */
+    .stButton > button {
+        background: linear-gradient(135deg, #003366 0%, #0047ab 100%);
+        color: white;
+        font-weight: 600;
+        padding: 1rem 2rem;
+        border-radius: 15px;
+        border: none;
+        box-shadow: 0 10px 20px rgba(0,51,102,0.3);
+        transition: all 0.3s ease;
+        font-size: 1.2rem;
+        letter-spacing: 0.5px;
+        width: 100%;
+        margin: 0.5rem 0;
+    }
+    
+    .stButton > button:hover {
+        background: linear-gradient(135deg, #0047ab 0%, #003366 100%);
+        box-shadow: 0 15px 30px rgba(0,51,102,0.4);
+        transform: translateY(-2px);
+    }
+    
+    /* RODAPÉ */
+    .footer-premium {
+        background: linear-gradient(135deg, #001529 0%, #003366 100%);
+        padding: 2rem;
+        border-radius: 30px 30px 0 0;
+        margin-top: 3rem;
+        color: white;
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .footer-premium::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, #ffd700, #ffffff, #ffd700);
+    }
+    
+    .footer-premium p {
+        margin: 0.5rem 0;
+        font-size: 1rem;
+        opacity: 0.9;
+    }
+    
+    .footer-premium strong {
+        color: #ffd700;
+        font-weight: 600;
+    }
+    
+    /* TIMELINE */
+    .timeline {
+        display: flex;
+        justify-content: space-between;
+        margin: 2rem 0;
+        position: relative;
+    }
+    
+    .timeline::before {
+        content: "";
+        position: absolute;
+        top: 30px;
+        left: 50px;
+        right: 50px;
+        height: 3px;
+        background: linear-gradient(90deg, #003366, #0047ab, #003366);
+        z-index: 1;
+    }
+    
+    .timeline-step {
+        text-align: center;
+        position: relative;
+        z-index: 2;
+        flex: 1;
+    }
+    
+    .timeline-icon {
+        background: white;
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1rem;
+        border: 3px solid #003366;
+        box-shadow: 0 5px 15px rgba(0,51,102,0.2);
+        font-size: 1.8rem;
+    }
+    
+    .timeline-label {
+        background: #f8f9fa;
+        padding: 0.5rem 1rem;
+        border-radius: 30px;
+        font-weight: 600;
+        color: #003366;
+        font-size: 0.9rem;
+        display: inline-block;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    
+    /* MENSAGENS DE SUCESSO */
+    .success-premium {
+        background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+        color: #155724;
+        padding: 1.5rem;
+        border-radius: 15px;
+        border-left: 5px solid #28a745;
+        margin: 1rem 0;
+        font-size: 1.1rem;
+        font-weight: 500;
+        box-shadow: 0 5px 15px rgba(40,167,69,0.2);
+    }
 </style>
 """, unsafe_allow_html=True)
 
 # ============================================
-# LOGO DO IPEM - CORRIGIDO (aceita os dois nomes)
+# HEADER PRINCIPAL COM LOGO E TÍTULO
 # ============================================
 
-col_logo1, col_logo2, col_logo3 = st.columns([1, 2, 1])
-
-with col_logo2:
-    try:
-        # Primeiro tenta o nome correto
-        if os.path.exists("logo_ipem.png"):
-            logo = Image.open("logo_ipem.png")
-            st.image(logo, width=250, use_container_width=False)
-        # Se não, tenta o nome com dupla extensão
-        elif os.path.exists("logo_ipem.png.png"):
-            logo = Image.open("logo_ipem.png.png")
-            st.image(logo, width=250, use_container_width=False)
-            st.caption("ℹ️ Arquivo com nome duplicado - renomeie para 'logo_ipem.png' para melhor compatibilidade")
-        else:
-            # Se não encontrar nenhum, mostra texto
-            st.markdown("""
-            <div style='text-align: center; padding: 1rem;'>
-                <h1 style='color: #003366; font-size: 3rem;'>⚖️ IPEm/RJ</h1>
-            </div>
-            """, unsafe_allow_html=True)
-        
-        # Texto institucional (aparece com ou sem logo)
-        st.markdown("""
-        <div style='text-align: center; margin-top: 5px;'>
-            <h3 style='color: #003366; margin: 0;'>INSTITUTO DE PESOS E MEDIDAS</h3>
-            <p style='color: #666; font-size: 1.1rem;'>ESTADO DO RIO DE JANEIRO</p>
+st.markdown("""
+<div class="main-header">
+    <div class="header-content">
+        <div class="header-title">
+            <h1>⚖️ IPEm/RJ</h1>
+            <h3>INSTITUTO DE PESOS E MEDIDAS DO ESTADO DO RIO DE JANEIRO</h3>
         </div>
-        """, unsafe_allow_html=True)
-        
-    except Exception as e:
-        st.markdown("""
-        <div style='text-align: center; padding: 1rem;'>
-            <h1 style='color: #003366;'>⚖️ IPEm/RJ</h1>
-            <h3 style='color: #666;'>INSTITUTO DE PESOS E MEDIDAS</h3>
-            <p style='color: #999;'>ESTADO DO RIO DE JANEIRO</p>
+        <div class="header-logo">
+            <h2>AUDITORIA<br>INTERNA</h2>
+            <p>SISTEMA DE DESPACHO INTELIGENTE</p>
         </div>
-        """, unsafe_allow_html=True)
+    </div>
+</div>
+""", unsafe_allow_html=True)
 
-st.markdown("---")
+# ============================================
+# MENSAGEM DE BOAS-VINDAS
+# ============================================
+
+st.markdown("""
+<div class="section-premium">
+    <div class="section-title-premium">Bem-vindo ao Sistema de Despacho Inteligente</div>
+    <p style="font-size: 1.2rem; color: #495057; line-height: 1.6;">
+        Este sistema foi desenvolvido para automatizar a geração de despachos de auditoria,
+        garantindo padronização, agilidade e conformidade com a Lei nº 14.133/2021.
+        Através da análise inteligente de documentos, você poderá gerar despachos
+        completos em poucos minutos.
+    </p>
+</div>
+""", unsafe_allow_html=True)
+
+# ============================================
+# TIMELINE DO PROCESSO
+# ============================================
+
+st.markdown("""
+<div class="timeline">
+    <div class="timeline-step">
+        <div class="timeline-icon">📂</div>
+        <span class="timeline-label">Upload do PDF</span>
+    </div>
+    <div class="timeline-step">
+        <div class="timeline-icon">🔍</div>
+        <span class="timeline-label">Análise Automática</span>
+    </div>
+    <div class="timeline-step">
+        <div class="timeline-icon">✏️</div>
+        <span class="timeline-label">Confirmação de Dados</span>
+    </div>
+    <div class="timeline-step">
+        <div class="timeline-icon">📥</div>
+        <span class="timeline-label">Download do Despacho</span>
+    </div>
+</div>
+""", unsafe_allow_html=True)
 
 # ============================================
 # INICIALIZAÇÃO DO SESSION STATE
@@ -94,14 +492,48 @@ if 'doc_bytes' not in st.session_state:
     st.session_state.doc_bytes = None
 if 'nome_arquivo' not in st.session_state:
     st.session_state.nome_arquivo = None
+if 'processos_analisados' not in st.session_state:
+    st.session_state.processos_analisados = 0
+
+# ============================================
+# ESTATÍSTICAS (somente se não houver análise em andamento)
+# ============================================
+
+if not st.session_state.dados_extraidos and not st.session_state.doc_bytes:
+    
+    st.markdown("""
+    <div class="stats-container">
+        <div class="stat-card">
+            <div class="stat-icon">⚡</div>
+            <div class="stat-label">Processos Analisados</div>
+            <div class="stat-value">{}</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">📊</div>
+            <div class="stat-label">Despachos Gerados</div>
+            <div class="stat-value">{}</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">⏱️</div>
+            <div class="stat-label">Tempo Médio</div>
+            <div class="stat-value">2 min</div>
+        </div>
+    </div>
+    """.format(st.session_state.processos_analisados, st.session_state.processos_analisados), unsafe_allow_html=True)
 
 # ============================================
 # PASSO 1: UPLOAD DO PDF
 # ============================================
 
-st.markdown('<div class="section-title">📂 PASSO 1: Upload do Processo</div>', unsafe_allow_html=True)
+st.markdown("""
+<div class="upload-premium">
+    <span>📎</span>
+    <h3>Upload do Processo</h3>
+    <p>Arraste o arquivo PDF do processo SEI ou clique para selecionar</p>
+</div>
+""", unsafe_allow_html=True)
 
-arquivo = st.file_uploader("Selecione o PDF do processo", type=['pdf'])
+arquivo = st.file_uploader("", type=['pdf'], label_visibility="collapsed")
 
 if arquivo and st.session_state.dados_extraidos is None:
     
@@ -116,10 +548,7 @@ if arquivo and st.session_state.dados_extraidos is None:
         
         st.session_state.texto_extraido = texto
         
-        # ========================================
-        # EXTRAIR DADOS DO TEXTO
-        # ========================================
-        
+        # Função para extrair campos
         def extrair_campo(padroes, texto, default=""):
             for padrao in padroes:
                 match = re.search(padrao, texto, re.IGNORECASE)
@@ -177,16 +606,17 @@ if arquivo and st.session_state.dados_extraidos is None:
             ], texto, "")
         }
         
-        # Extrair SEIs (todos os números de documento)
+        # Extrair SEIs
         seis_encontrados = re.findall(r'SEI[:\s]*n[º°]?\s*(\d+)', texto, re.IGNORECASE)
         
         st.session_state.dados_extraidos = dados_extraidos
         st.session_state.seis_encontrados = seis_encontrados
+        st.session_state.processos_analisados += 1
         
         st.rerun()
 
 # ============================================
-# PASSO 2: MOSTRAR RESULTADO DA ANÁLISE
+# SE HOUVER DADOS EXTRAÍDOS, MOSTRA O FORMULÁRIO
 # ============================================
 
 if st.session_state.dados_extraidos:
@@ -194,7 +624,11 @@ if st.session_state.dados_extraidos:
     dados = st.session_state.dados_extraidos
     seis = st.session_state.seis_encontrados
     
-    st.markdown('<div class="section-title">🔍 PASSO 2: Dados Encontrados no PDF</div>', unsafe_allow_html=True)
+    st.markdown("""
+    <div class="section-premium">
+        <div class="section-title-premium">📊 Dados Encontrados no PDF</div>
+    </div>
+    """, unsafe_allow_html=True)
     
     col_res1, col_res2, col_res3 = st.columns(3)
     
@@ -220,62 +654,41 @@ if st.session_state.dados_extraidos:
         st.write(f"TR: {dados['tr_numero'] or '❌'}")
         st.write(f"Parecer: {dados['parecer_numero'] or '❌'}")
     
-    # Mostrar SEIs encontrados
     if seis:
         with st.expander(f"📎 {len(seis)} números SEI encontrados"):
             for i, sei in enumerate(seis[:10]):
                 st.write(f"• SEI {sei}")
     
     # ========================================
-    # PASSO 3: FORMULÁRIO PARA CONFIRMAÇÃO
+    # FORMULÁRIO
     # ========================================
     
-    st.markdown('<div class="section-title">✏️ PASSO 3: Confirme e Ajuste os Dados</div>', unsafe_allow_html=True)
+    st.markdown("""
+    <div class="section-premium">
+        <div class="section-title-premium">✏️ Confirmação de Dados</div>
+    </div>
+    """, unsafe_allow_html=True)
     
     with st.form("form_confirmacao"):
         
-        st.markdown("##### 📋 Dados do Processo")
         col1, col2 = st.columns(2)
         
         with col1:
-            processo_sei = st.text_input(
-                "Nº do Processo SEI *", 
-                value=dados['processo_sei']
-            )
-            
-            objeto = st.text_input(
-                "Objeto da Contratação *",
-                value=dados['objeto']
-            )
+            processo_sei = st.text_input("Nº do Processo SEI *", value=dados['processo_sei'])
+            objeto = st.text_input("Objeto da Contratação *", value=dados['objeto'])
             
             try:
                 data_valor = datetime.strptime(dados['data_autorizacao'], '%d/%m/%Y') if dados['data_autorizacao'] and '/' in dados['data_autorizacao'] else None
             except:
                 data_valor = None
             
-            data_autorizacao = st.date_input(
-                "Data da Autorização",
-                value=data_valor,
-                format="DD/MM/YYYY"
-            )
+            data_autorizacao = st.date_input("Data da Autorização", value=data_valor, format="DD/MM/YYYY")
         
         with col2:
-            valor_input = st.text_input(
-                "Valor (R$)",
-                value=dados['valor']
-            )
-            
-            sei_inicio = st.text_input(
-                "SEI da Solicitação Inicial",
-                value=seis[0] if len(seis) > 0 else ""
-            )
-            
-            sei_autorizacao = st.text_input(
-                "SEI da Autorização",
-                value=seis[1] if len(seis) > 1 else ""
-            )
+            valor_input = st.text_input("Valor (R$)", value=dados['valor'])
+            sei_inicio = st.text_input("SEI da Solicitação Inicial", value=seis[0] if len(seis) > 0 else "")
+            sei_autorizacao = st.text_input("SEI da Autorização", value=seis[1] if len(seis) > 1 else "")
         
-        st.markdown("##### 📑 Documentos Técnicos")
         col3, col4 = st.columns(2)
         
         with col3:
@@ -290,7 +703,6 @@ if st.session_state.dados_extraidos:
             req_siga = st.text_input("Nº da Requisição SIGA", value=dados['req_siga'])
             parecer_numero = st.text_input("Nº do Parecer Jurídico", value=dados['parecer_numero'])
         
-        st.markdown("##### ⚖️ Documentos Jurídicos e Orçamentários")
         col5, col6 = st.columns(2)
         
         with col5:
@@ -299,22 +711,16 @@ if st.session_state.dados_extraidos:
             sei_ordenador = st.text_input("SEI da Declaração do Ordenador", value=seis[7] if len(seis) > 7 else "")
         
         with col6:
-            fundamentacao = st.text_area(
-                "Fundamentação Legal",
+            fundamentacao = st.text_area("Fundamentação Legal", 
                 value="art. 1º da Resolução PGE nº 5.059/2024 e no art. 95, I, da Lei nº 14.133/2021",
-                height=100
-            )
+                height=100)
         
-        observacoes = st.text_area(
-            "Observações",
-            placeholder="Inclua observações adicionais se necessário...",
-            height=100
-        )
+        observacoes = st.text_area("Observações", height=100)
         
-        submitted = st.form_submit_button("✅ CONFIRMAR DADOS E GERAR DESPACHO")
+        submitted = st.form_submit_button("✅ CONFIRMAR DADOS E GERAR DESPACHO", use_container_width=True)
     
     # ========================================
-    # PASSO 4: GERAR DESPACHO
+    # GERAR DESPACHO
     # ========================================
     
     if submitted:
@@ -325,7 +731,6 @@ if st.session_state.dados_extraidos:
             
             with st.spinner("Gerando despacho..."):
                 
-                # Criar documento Word
                 doc = Document()
                 style = doc.styles['Normal']
                 style.font.name = 'Arial'
@@ -337,8 +742,7 @@ if st.session_state.dados_extraidos:
                     f"Atendendo à solicitação de análise do processo SEI nº {processo_sei}, "
                     f"pela Diretoria de Administração e Finanças – DIRAF, referente à {objeto} "
                     f"para o Instituto de Pesos e Medidas do Estado do Rio de Janeiro (IPEM/RJ), "
-                    f"procedemos à verificação dos documentos apresentados, com o objetivo de "
-                    f"subsidiar a continuidade do processo, sem adentrar no mérito técnico da contratação."
+                    f"procedemos à verificação dos documentos apresentados."
                 )
                 doc.add_paragraph()
                 
@@ -353,9 +757,8 @@ if st.session_state.dados_extraidos:
                 data_aut_str = data_autorizacao.strftime('%d/%m/%Y') if data_autorizacao else 'data não informada'
                 p.add_run(
                     f"O processo foi iniciado pela Superintendência de Pré-Medidos "
-                    f"{'SEI ' + sei_inicio if sei_inicio else ''} e devidamente autorizado "
-                    f"pela Presidência do IPEM/RJ em {data_aut_str} "
-                    f"{'SEI ' + sei_autorizacao if sei_autorizacao else ''}."
+                    f"{'SEI ' + sei_inicio if sei_inicio else ''} e autorizado pela Presidência "
+                    f"em {data_aut_str} {'SEI ' + sei_autorizacao if sei_autorizacao else ''}."
                 )
                 
                 # Item 2
@@ -364,45 +767,40 @@ if st.session_state.dados_extraidos:
                 p.add_run(
                     f"O ETP nº {etp_numero if etp_numero else 'não informado'} "
                     f"{'SEI ' + sei_etp if sei_etp else ''} e a Matriz de Riscos nº {risco_numero if risco_numero else 'não informada'} "
-                    f"{'SEI ' + sei_risco if sei_risco else ''} detalham a necessidade, viabilidade técnica e ações de mitigação para a contratação."
+                    f"{'SEI ' + sei_risco if sei_risco else ''} detalham a necessidade e viabilidade."
                 )
                 
                 # Item 3
                 p = doc.add_paragraph()
                 p.add_run("3. Termo de Referência-TR: ").bold = True
                 p.add_run(
-                    f"O TR nº {tr_numero if tr_numero else 'não informado'}, "
-                    f"{'SEI ' + sei_tr if sei_tr else ''}, consolida as especificações técnicas e condições contratuais, "
-                    f"servindo de balizador para a fase externa."
+                    f"O TR nº {tr_numero if tr_numero else 'não informado'} "
+                    f"{'SEI ' + sei_tr if sei_tr else ''} consolida as especificações técnicas."
                 )
                 
                 # Item 4
                 p = doc.add_paragraph()
                 p.add_run("4. Pesquisa de Mercado e Requisição SIGA: ").bold = True
-                texto4 = (
-                    f"Foi realizada pesquisa de mercado formal, com a devida inclusão da Requisição de Material nº {req_siga if req_siga else 'não informada'} "
-                    f"no Sistema Integrado de Gestão de Aquisições (SIGA)"
-                )
+                texto4 = f"Requisição nº {req_siga if req_siga else 'não informada'} no SIGA"
                 if valor_input:
-                    texto4 += f", totalizando o valor estimado de R$ {valor_input}"
-                texto4 += "."
-                p.add_run(texto4)
+                    texto4 += f", valor estimado de R$ {valor_input}"
+                p.add_run(texto4 + ".")
                 
                 # Item 5
                 p = doc.add_paragraph()
                 p.add_run("5. Conformidade Orçamentária: ").bold = True
                 p.add_run(
-                    f"O processo conta com as declarações de impacto financeiro {'SEI ' + sei_impacto if sei_impacto else ''}, "
-                    f"disponibilidade orçamentária {'SEI ' + sei_disponibilidade if sei_disponibilidade else ''} e a declaração do ordenador de despesa "
-                    f"{'SEI ' + sei_ordenador if sei_ordenador else ''}, atestando a compatibilidade com o orçamento e o Plano Plurianual (PPA/RJ) para 2026."
+                    f"Declarações SEI {sei_impacto if sei_impacto else ''}, "
+                    f"{sei_disponibilidade if sei_disponibilidade else ''} e "
+                    f"{sei_ordenador if sei_ordenador else ''} atestam compatibilidade orçamentária."
                 )
                 
                 # Item 6
                 p = doc.add_paragraph()
                 p.add_run("6. Parecer Jurídico: ").bold = True
                 p.add_run(
-                    f"A Diretoria Jurídica manifestou-se por meio do Despacho SEI {parecer_numero if parecer_numero else 'não informado'}, "
-                    f"informando a dispensa de análise jurídica formal em razão do valor da contratação, fundamentada na {fundamentacao}."
+                    f"Despacho SEI {parecer_numero if parecer_numero else 'não informado'}, "
+                    f"fundamentado em {fundamentacao}."
                 )
                 
                 doc.add_paragraph()
@@ -413,10 +811,7 @@ if st.session_state.dados_extraidos:
                     doc.add_paragraph(observacoes)
                 else:
                     doc.add_paragraph(
-                        "Verifica-se que o processo encontra-se devidamente instruído, tendo percorrido as etapas "
-                        "formais exigidas pela legislação vigente. As especificações técnicas e condições de "
-                        "fornecimento estão consolidadas no Termo de Referência, documento que orientará a fase de "
-                        "seleção do fornecedor."
+                        "Verifica-se que o processo encontra-se devidamente instruído."
                     )
                 
                 doc.add_paragraph()
@@ -424,9 +819,7 @@ if st.session_state.dados_extraidos:
                 # IV. DESPACHO
                 doc.add_paragraph().add_run("IV. Despacho").bold = True
                 doc.add_paragraph(
-                    "Dessa forma, e considerando que os atos administrativos até o presente momento se mostram "
-                    "formalmente adequados e em conformidade com a Lei nº 14.133/2021 e demais normas aplicáveis, "
-                    "indicamos à continuidade do processo."
+                    "Dessa forma, considerando a regularidade formal, indicamos a continuidade do processo."
                 )
                 
                 doc.add_paragraph()
@@ -438,7 +831,6 @@ if st.session_state.dados_extraidos:
                 doc.add_paragraph("Auditor Interno")
                 doc.add_paragraph("IPEm/RJ")
                 
-                # Salvar em memória
                 doc_bytes = io.BytesIO()
                 doc.save(doc_bytes)
                 doc_bytes.seek(0)
@@ -449,41 +841,45 @@ if st.session_state.dados_extraidos:
                 st.rerun()
 
 # ============================================
-# PASSO 5: BOTÃO DE DOWNLOAD
+# DOWNLOAD DO DESPACHO
 # ============================================
 
 if st.session_state.doc_bytes:
     
-    st.markdown('<div class="section-title">📥 PASSO 4: Download do Despacho</div>', unsafe_allow_html=True)
+    st.markdown("""
+    <div class="section-premium">
+        <div class="section-title-premium">✅ Despacho Gerado com Sucesso!</div>
+    </div>
+    """, unsafe_allow_html=True)
     
-    st.success("✅ DESPACHO GERADO COM SUCESSO!")
     st.balloons()
     
-    st.download_button(
-        label="📥 CLIQUE AQUI PARA BAIXAR O DESPACHO",
-        data=st.session_state.doc_bytes,
-        file_name=st.session_state.nome_arquivo,
-        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        use_container_width=True
-    )
+    col_btn1, col_btn2, col_btn3 = st.columns([1, 2, 1])
     
-    # Botão para resetar
-    if st.button("🔄 NOVO PROCESSO"):
-        for key in ['dados_extraidos', 'texto_extraido', 'seis_encontrados', 'doc_bytes', 'nome_arquivo']:
-            if key in st.session_state:
-                del st.session_state[key]
-        st.rerun()
+    with col_btn2:
+        st.download_button(
+            label="📥 BAIXAR DESPACHO",
+            data=st.session_state.doc_bytes,
+            file_name=st.session_state.nome_arquivo,
+            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            use_container_width=True
+        )
+        
+        if st.button("🔄 NOVO PROCESSO", use_container_width=True):
+            for key in ['dados_extraidos', 'texto_extraido', 'seis_encontrados', 'doc_bytes', 'nome_arquivo']:
+                if key in st.session_state:
+                    del st.session_state[key]
+            st.rerun()
 
 # ============================================
-# RODAPÉ
+# RODAPÉ INSTITUCIONAL
 # ============================================
 
-st.markdown("---")
-st.markdown(f"""
-<div class="footer">
-    © 2026 - Auditoria Interna IPEm/RJ • Versão 6.1<br>
-    INSTITUTO DE PESOS E MEDIDAS DO ESTADO DO RIO DE JANEIRO<br>
-    Sistema de Despacho Inteligente - Lei 14.133/2021<br>
-    Última atualização: {datetime.now().strftime('%d/%m/%Y %H:%M')}
+st.markdown("""
+<div class="footer-premium">
+    <p><strong>INSTITUTO DE PESOS E MEDIDAS DO ESTADO DO RIO DE JANEIRO</strong></p>
+    <p>AUDITORIA INTERNA - SISTEMA DE DESPACHO INTELIGENTE</p>
+    <p style="font-size: 0.9rem; opacity: 0.8;">Lei nº 14.133/2021 • Versão 7.0 Premium</p>
+    <p style="font-size: 0.8rem; opacity: 0.6;">© 2026 - Todos os direitos reservados</p>
 </div>
 """, unsafe_allow_html=True)
