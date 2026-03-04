@@ -438,7 +438,38 @@ st.markdown("""
     </div>
 </div>
 """, unsafe_allow_html=True)
+# ============================================
+# BARRA LATERAL
+# ============================================
 
+with st.sidebar:
+    st.markdown("""
+    <div style='background: linear-gradient(135deg, #003366 0%, #0047ab 100%);
+                padding: 1.5rem; border-radius: 15px; text-align: center;
+                margin-bottom: 2rem;'>
+        <h3 style='color: white; margin: 0;'>⚖️ IPEM/RJ</h3>
+        <p style='color: rgba(255,255,255,0.8); margin: 0;'>Auditoria Interna</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # LINK DO SEI
+    st.markdown("""
+    <a href="https://sei.rj.gov.br/sei/" target="_blank" 
+       style="text-decoration: none; display: block; text-align: center;
+              background: white; padding: 1rem; border-radius: 10px;
+              border: 2px solid #003366; color: #003366; font-weight: 600;
+              margin-bottom: 2rem; font-size: 1.1rem;">
+        🔐 ABRIR SISTEMA SEI-RJ
+    </a>
+    """, unsafe_allow_html=True)
+    
+    st.markdown("---")
+    st.markdown("### ℹ️ Informações")
+    st.markdown("""
+    **Sistema de Análise Automática**  
+    Versão 7.3  
+    Lei 14.133/2021
+    """)
 # ============================================
 # MENSAGEM DE BOAS-VINDAS
 # ============================================
