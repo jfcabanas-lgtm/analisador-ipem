@@ -403,7 +403,7 @@ st.markdown("""
 
 st.markdown("""
 <div class="section-premium">
-    <div class="section-title-premium">Bem-vindo ao Sistema de Despacho Inteligente</div>
+    <div class="section-title-premium">Bem-vindo à Análise de Processos de Licitação e Dispensa</div>
     <p style="font-size: 1.2rem; color: #495057; line-height: 1.6;">
         Este sistema foi desenvolvido para automatizar a geração de despachos de auditoria,
         garantindo padronização, agilidade e conformidade com a Lei nº 14.133/2021.
