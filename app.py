@@ -17,7 +17,7 @@ import base64
 
 # CONFIGURAÇÃO DA PÁGINA
 st.set_page_config(
-    page_title="IPEM - Sistema de Despacho Inteligente",
+    page_title="IPEM - Análise de Processo de Licitação e Dispensa",
     page_icon="⚖️",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -445,7 +445,7 @@ st.markdown("""
 
 st.markdown("""
 <div class="section-premium">
-    <div class="section-title-premium">Bem-vindo ao Sistema de Despacho Inteligente</div>
+    <div class="section-title-premium">Bem-vindo ao Análise de Processo de Licitação e Dispensa</div>
     <p style="font-size: 1.2rem; color: #495057; line-height: 1.6;">
         Este sistema foi desenvolvido para automatizar a geração de despachos de auditoria,
         garantindo padronização, agilidade e conformidade com a Lei nº 14.133/2021.
