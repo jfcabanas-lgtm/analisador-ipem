@@ -1,6 +1,6 @@
 # ============================================
 # DESPACHO AUDIT - IPEM/RJ
-# VERSÃO COMPLETA COM DESPACHO CONFORME MODELO
+# VERSÃO COM BUSCA REFORÇADA DE DOCUMENTOS
 # ============================================
 
 import streamlit as st
@@ -496,7 +496,7 @@ st.markdown("""
 arquivo = st.file_uploader("", type=['pdf'], label_visibility="collapsed")
 
 # ============================================
-# FUNÇÃO PARA EXTRAIR DADOS
+# FUNÇÕES REFORÇADAS PARA EXTRAIR DADOS
 # ============================================
 
 def extrair_campo(padroes, texto, default=""):
@@ -505,6 +505,93 @@ def extrair_campo(padroes, texto, default=""):
         if match:
             return match.group(1).strip()
     return default
+
+def encontrar_tr(texto):
+    """Busca por TR em qualquer formato no texto"""
+    
+    # Lista de PADRÕES REFORÇADOS para encontrar o TR
+    padroes_tr = [
+        r'TR[:\s]*n[º°]?\s*(\d+[/-]\d+)',
+        r'TR[:\s]*n[º°]?\s*(\d+)',
+        r'Termo de Referência[:\s]*n[º°]?\s*(\d+[/-]\d+)',
+        r'Termo de Referência[:\s]*n[º°]?\s*(\d+)',
+        r'TR[-]?(\d+[/-]\d+)',
+        r'TR[-]?(\d+)',
+        r'TR[:\s]*(\d+)',
+        r'TR[:\s]*(\d+/\d+)',
+        r'T\.R\.\s*n[º°]?\s*(\d+/\d+)',
+        r'T\.R\.\s*n[º°]?\s*(\d+)',
+        r'(\d{1,3}[/-]\d{4})'  # Qualquer número no formato XX/XXXX
+    ]
+    
+    for padrao in padroes_tr:
+        matches = re.findall(padrao, texto, re.IGNORECASE)
+        if matches:
+            return matches[0]
+    return ""
+
+def encontrar_etp(texto):
+    """Busca por ETP em qualquer formato no texto"""
+    padroes_etp = [
+        r'ETP[:\s]*n[º°]?\s*(\d+[/-]\d+)',
+        r'ETP[:\s]*n[º°]?\s*(\d+)',
+        r'Estudo Técnico Preliminar[:\s]*n[º°]?\s*(\d+[/-]\d+)',
+        r'Estudo Técnico Preliminar[:\s]*n[º°]?\s*(\d+)',
+        r'ETP[-]?(\d+[/-]\d+)',
+        r'ETP[-]?(\d+)',
+        r'E\.T\.P\.\s*n[º°]?\s*(\d+/\d+)',
+        r'E\.T\.P\.\s*n[º°]?\s*(\d+)',
+    ]
+    
+    for padrao in padroes_etp:
+        matches = re.findall(padrao, texto, re.IGNORECASE)
+        if matches:
+            return matches[0]
+    return ""
+
+def encontrar_seis(texto):
+    """Busca TODOS os números SEI no texto"""
+    padroes_sei = [
+        r'SEI[:\s]*n[º°]?\s*(\d+)',
+        r'SEI[:\s]*(\d+)',
+        r'Documento[:\s]*SEI[:\s]*n[º°]?\s*(\d+)',
+        r'Despacho[:\s]*SEI[:\s]*n[º°]?\s*(\d+)',
+        r'SEI[-]?(\d+)',
+    ]
+    
+    todos_seis = []
+    for padrao in padroes_sei:
+        matches = re.findall(padrao, texto, re.IGNORECASE)
+        todos_seis.extend(matches)
+    
+    # Remove duplicatas mantendo a ordem
+    seen = set()
+    seis_unicos = []
+    for sei in todos_seis:
+        if sei not in seen:
+            seen.add(sei)
+            seis_unicos.append(sei)
+    
+    return seis_unicos
+
+def encontrar_risco(texto):
+    """Busca por Matriz de Riscos"""
+    padroes_risco = [
+        r'Matriz de Riscos[:\s]*n[º°]?\s*(\d+/\d+)',
+        r'Matriz de Riscos[:\s]*n[º°]?\s*(\d+)',
+        r'Gestão de Risco[:\s]*n[º°]?\s*(\d+/\d+)',
+        r'Risco[:\s]*n[º°]?\s*(\d+/\d+)',
+    ]
+    
+    for padrao in padroes_risco:
+        matches = re.findall(padrao, texto, re.IGNORECASE)
+        if matches:
+            return matches[0]
+    return ""
+
+# ============================================
+# PROCESSAR O PDF
+# ============================================
 
 if arquivo and st.session_state.dados_extraidos is None:
     
@@ -518,6 +605,11 @@ if arquivo and st.session_state.dados_extraidos is None:
         
         st.session_state.texto_extraido = texto
         
+        # MOSTRAR PARTE DO TEXTO PARA DIAGNÓSTICO
+        with st.expander("📄 Ver texto extraído do PDF (primeiras 1000 caracteres)"):
+            st.text(texto[:1000])
+        
+        # Extrair dados usando as funções reforçadas
         dados_extraidos = {
             'processo_sei': extrair_campo([
                 r'Processo[:\s]*n[º°]?\s*([\d\-/]+)',
@@ -537,29 +629,21 @@ if arquivo and st.session_state.dados_extraidos is None:
                 r'total[:\s]*R\$\s*([\d.,]+)'
             ], texto, ""),
             
-            'etp_numero': extrair_campo([
-                r'ETP[:\s]*n[º°]?\s*(\d+/\d+)',
-                r'Estudo Técnico Preliminar[:\s]*n[º°]?\s*(\d+/\d+)'
-            ], texto, ""),
-            
-            'tr_numero': extrair_campo([
-                r'TR[:\s]*n[º°]?\s*(\d+/\d+)',
-                r'Termo de Referência[:\s]*n[º°]?\s*(\d+/\d+)'
-            ], texto, ""),
-            
-            'risco_numero': extrair_campo([
-                r'Matriz de Riscos[:\s]*n[º°]?\s*(\d+/\d+)',
-                r'Gestão de Risco[:\s]*n[º°]?\s*(\d+/\d+)'
-            ], texto, ""),
+            'etp_numero': encontrar_etp(texto),
+            'tr_numero': encontrar_tr(texto),
+            'risco_numero': encontrar_risco(texto),
             
             'req_siga': extrair_campo([
                 r'Requisição[:\s]*n[º°]?\s*(\d+/\d+)',
-                r'SIGA[:\s]*n[º°]?\s*(\d+/\d+)'
+                r'Requisição SIGA[:\s]*n[º°]?\s*(\d+/\d+)',
+                r'SIGA[:\s]*n[º°]?\s*(\d+/\d+)',
+                r'Requisição[:\s]*n[º°]?\s*(\d+)'
             ], texto, ""),
             
             'parecer_numero': extrair_campo([
                 r'Despacho SEI[:\s]*n[º°]?\s*(\d+)',
-                r'Parecer[:\s]*n[º°]?\s*(\d+)'
+                r'Parecer[:\s]*n[º°]?\s*(\d+)',
+                r'Parecer Jurídico[:\s]*n[º°]?\s*(\d+)'
             ], texto, ""),
             
             'data_autorizacao': extrair_campo([
@@ -568,7 +652,26 @@ if arquivo and st.session_state.dados_extraidos is None:
             ], texto, "")
         }
         
-        seis_encontrados = re.findall(r'SEI[:\s]*n[º°]?\s*(\d+)', texto, re.IGNORECASE)
+        # Encontrar todos os SEIs
+        seis_encontrados = encontrar_seis(texto)
+        
+        # MOSTRAR DIAGNÓSTICO DO QUE FOI ENCONTRADO
+        st.info("🔍 **DIAGNÓSTICO DA EXTRAÇÃO:**")
+        
+        col_d1, col_d2 = st.columns(2)
+        with col_d1:
+            st.write(f"**📋 Processo:** {dados_extraidos['processo_sei'] or '❌'}")
+            st.write(f"**📝 Objeto:** {dados_extraidos['objeto'][:50] or '❌'}...")
+            st.write(f"**💰 Valor:** {dados_extraidos['valor'] or '❌'}")
+            
+        with col_d2:
+            st.write(f"**📄 ETP:** {dados_extraidos['etp_numero'] or '❌ NÃO ENCONTRADO'}")
+            st.write(f"**📄 TR:** {dados_extraidos['tr_numero'] or '❌ NÃO ENCONTRADO'}")
+            st.write(f"**📄 Parecer:** {dados_extraidos['parecer_numero'] or '❌'}")
+        
+        st.write(f"**🔢 SEIs encontrados:** {len(seis_encontrados)} números")
+        if seis_encontrados:
+            st.write(f"   • {', '.join(seis_encontrados[:5])}")
         
         st.session_state.dados_extraidos = dados_extraidos
         st.session_state.seis_encontrados = seis_encontrados
@@ -654,19 +757,19 @@ def gerar_despacho_modelo(processo_sei, objeto, data_autorizacao,
         if sei_etp:
             texto2 += f"SEI {sei_etp} "
     else:
-        texto2 += "O ETP não foi identificado "
+        texto2 += "O ETP não foi identificado na análise automática. "
     
     if risco_numero:
         texto2 += f"e a Matriz de Riscos nº {risco_numero} "
         if sei_risco:
             texto2 += f"SEI {sei_risco} "
     else:
-        texto2 += "e a Matriz de Riscos não foi identificada "
+        texto2 += "e a Matriz de Riscos não foi identificada. "
     
-    texto2 += "detalham a necessidade, viabilidade técnica e ações de mitigação para a contratação."
+    texto2 += "Estes documentos detalham a necessidade, viabilidade técnica e ações de mitigação para a contratação."
     p.add_run(texto2)
     
-    # 3. Termo de Referência
+    # 3. Termo de Referência (VERSÃO MELHORADA)
     p = doc.add_paragraph()
     p.add_run("3. Termo de Referência-TR: ").bold = True
     
@@ -677,7 +780,10 @@ def gerar_despacho_modelo(processo_sei, objeto, data_autorizacao,
             texto3 += f", SEI {sei_tr}"
         texto3 += ", consolida as especificações técnicas e condições contratuais, servindo de balizador para a fase externa."
     else:
-        texto3 += "O TR não foi identificado nos autos."
+        texto3 += "O TR não foi localizado na análise automática. "
+        texto3 += "Recomenda-se verificar a existência deste documento nos autos, "
+        texto3 += "pois é essencial para a instrução processual."
+        texto3 += "\n  → Caso o documento exista, informe o número no campo acima."
     
     p.add_run(texto3)
     
@@ -780,7 +886,8 @@ def gerar_despacho_modelo(processo_sei, objeto, data_autorizacao,
     else:
         texto_despacho = (
             "Dessa forma, considerando a necessidade de complementação documental, "
-            "recomendamos a regularização dos itens pendentes antes do prosseguimento do feito."
+            "recomendamos a regularização dos itens pendentes antes do prosseguimento do feito, "
+            "conforme observações acima."
         )
     
     doc.add_paragraph(texto_despacho)
@@ -880,7 +987,8 @@ if st.session_state.dados_extraidos:
         with col3:
             etp_numero = st.text_input("Nº do ETP", value=dados['etp_numero'])
             sei_etp = st.text_input("SEI do ETP", value=seis[2] if len(seis) > 2 else "")
-            tr_numero = st.text_input("Nº do TR", value=dados['tr_numero'])
+            tr_numero = st.text_input("Nº do TR *", value=dados['tr_numero'], 
+                                     help="Campo obrigatório - informe o número do TR")
             sei_tr = st.text_input("SEI do TR", value=seis[3] if len(seis) > 3 else "")
         
         with col4:
@@ -906,7 +1014,7 @@ if st.session_state.dados_extraidos:
         submitted = st.form_submit_button("✅ CONFIRMAR DADOS E GERAR DESPACHO", use_container_width=True)
     
     # ========================================
-    # GERAR DESPACHO (QUANDO SUBMETER O FORM)
+    # GERAR DESPACHO
     # ========================================
     
     if submitted:
@@ -979,7 +1087,7 @@ st.markdown("""
     <p><strong>IPEM/RJ - INSTITUTO DE PESOS E MEDIDAS DO ESTADO DO RIO DE JANEIRO</strong></p>
     <p>AUDITORIA INTERNA - ANÁLISE DE PROCESSO DE LICITAÇÃO E DISPENSA</p>
     <a href="https://sei.rj.gov.br/sei/" target="_blank">🔐 ACESSAR SEI</a>
-    <p style="font-size: 0.9rem; opacity: 0.8;">Lei nº 14.133/2021 • Versão 8.0</p>
+    <p style="font-size: 0.9rem; opacity: 0.8;">Lei nº 14.133/2021 • Versão 9.0 - Busca Reforçada</p>
     <p style="font-size: 0.8rem; opacity: 0.6;">© 2026 - Todos os direitos reservados</p>
 </div>
 """, unsafe_allow_html=True)
