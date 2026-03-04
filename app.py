@@ -433,7 +433,7 @@ st.markdown("""
         </div>
         <div class="header-seal">
             <h2>AUDITORIA<br>INTERNA</h2>
-            <p>SISTEMA DE DESPACHO INTELIGENTE POR ANÁLISE DE PROCESSO DE LICITAÇÃO E DISPENSA</p>
+            <p>ANÁLISE DE PROCESSO DE LICITAÇÃO E DISPENSA</p>
         </div>
     </div>
 </div>
@@ -875,7 +875,7 @@ if st.session_state.doc_bytes:
 st.markdown("""
 <div class="footer-premium">
     <p><strong>IPEM/RJ - INSTITUTO DE PESOS E MEDIDAS DO ESTADO DO RIO DE JANEIRO</strong></p>
-    <p>AUDITORIA INTERNA - SISTEMA DE DESPACHO INTELIGENTE POR ANÁLISE DE PROCESSO DE LICITAÇÃO E DISPENSA</p>
+    <p>AUDITORIA INTERNA - ANÁLISE DE PROCESSO DE LICITAÇÃO E DISPENSA</p>
     <p style="font-size: 0.9rem; opacity: 0.8;">Lei nº 14.133/2021 • Versão 7.2 Premium</p>
     <p style="font-size: 0.8rem; opacity: 0.6;">© 2026 - Todos os direitos reservados</p>
 </div>
